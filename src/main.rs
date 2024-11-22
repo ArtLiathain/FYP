@@ -25,7 +25,7 @@ struct Maze {
     end : (usize, usize)
 
 }
-
+// This is the maze
 impl Maze {
     fn new(width: usize, height: usize) -> Self {
         Maze {
