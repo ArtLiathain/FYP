@@ -1,8 +1,10 @@
 use std::hash::Hash;
+use std::thread::sleep;
+use std::time::Duration;
 use std::usize;
 use std::{collections::HashSet, fmt};
 
-use macroquad::color::{BLACK, GOLD, GREEN, WHITE};
+use macroquad::color::{BLACK, BLUE, GOLD, GREEN, WHITE};
 use macroquad::shapes::{draw_line, draw_rectangle};
 use macroquad::window::{clear_background, next_frame};
 use rand::Rng; // For random number generation
@@ -21,9 +23,8 @@ struct Maze {
     width: usize,
     height: usize,
     grid: Vec<Vec<Cell>>, // Tracks which cells are part of the maze
-    start : (usize, usize),
-    end : (usize, usize)
-
+    start: (usize, usize),
+    end: (usize, usize),
 }
 
 impl Maze {
@@ -31,8 +32,8 @@ impl Maze {
         Maze {
             width,
             height,
-            start : (0, height-1),
-            end : (width/2, height/2),
+            start: (0, height - 1),
+            end: (width / 2, height / 2),
             grid: (0..width)
                 .map(|x| {
                     (0..height)
@@ -56,8 +57,8 @@ impl Maze {
 
     fn set_end(&mut self, cell: (usize, usize)) {
         self.grid[cell.0][cell.1].end = true;
+        self.end = cell;
     }
-
     fn in_bounds(&self, cell: (usize, usize)) -> bool {
         cell.0 < self.width && cell.1 < self.height
     }
@@ -68,8 +69,6 @@ impl Maze {
     fn get_end_point(&self) -> (usize, usize) {
         self.end
     }
-
-
 
     fn set_starting_point(&mut self, coordinates: (usize, usize), delete_wall: Option<&Direction>) {
         let cell = &mut self.grid[coordinates.0][coordinates.1];
@@ -158,22 +157,30 @@ impl Direction {
     }
 }
 
-async fn draw_maze(maze: &Maze, cell_size: f32) {
+async fn draw_maze(maze: &Maze, cell_size: f32, path: &Vec<(usize, usize)>) {
     clear_background(BLACK);
     let offset = 10.0;
     for row in &maze.grid {
         for cell in row {
             // println!("Cell: {} {} {:?}", cell.x, cell.y, cell.walls);
-            draw_cell(cell, cell_size, offset).await;
+            draw_cell(cell, cell_size, offset, &path).await;
         }
     }
 }
 
-async fn draw_cell(cell: &Cell, cell_size: f32, offset: f32) {
+async fn draw_cell(cell: &Cell, cell_size: f32, offset: f32, path: &Vec<(usize, usize)>) {
     let x = cell.x as f32 * cell_size + offset;
     let y = cell.y as f32 * cell_size + offset;
 
     let thickness = 1.0;
+
+    let match_index = path
+        .iter()
+        .position(|(coordinates)| *coordinates == (cell.x, cell.y));
+    if let Some(_index ) = match_index {
+        draw_rectangle(x, y, cell_size, cell_size, BLUE);
+    }
+
     if cell.end {
         draw_rectangle(x, y, cell_size, cell_size, GOLD); // Change RED to any color you prefer
     }
@@ -219,14 +226,11 @@ fn random_maze(width: usize, height: usize) -> Maze {
     let mut visited_nodes: HashSet<(usize, usize)> = HashSet::new();
     let end_coordinate = (width / 2, height / 2);
     maze.set_end((width / 2, height / 2));
-    maze.set_starting_point(
-        unvisited_nodes[(height - 1)],
-        Some((&Direction::South)),
-    );
-    let mut current = unvisited_nodes.remove((height - 1));
+    maze.set_starting_point(unvisited_nodes[height - 1], Some(&Direction::South));
+    let mut current = unvisited_nodes.remove(height - 1);
     while !unvisited_nodes.is_empty() {
         let mut new_path: Vec<((usize, usize), Direction)> = Vec::new();
-        let mut new_coordinates: (usize, usize) = (0, 0);
+        let mut new_coordinates: (usize, usize);
         loop {
             let direction = Direction::random();
             // println!("COORDINATES {} {} {}", current.0, current.1, direction);
@@ -268,7 +272,7 @@ fn random_maze(width: usize, height: usize) -> Maze {
             visited_nodes.insert(coords);
             unvisited_nodes.retain(|&coord| coord != coords);
         }
-        if (!unvisited_nodes.is_empty()) {
+        if !unvisited_nodes.is_empty() {
             current =
                 unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
         }
@@ -291,27 +295,128 @@ fn random_maze(width: usize, height: usize) -> Maze {
     maze
 }
 
-fn solve_maze(maze : &Maze) -> Vec<(usize, usize)> {
-    let mut current = maze.get_starting_point();
+fn solve_maze(maze: &Maze) -> Vec<(usize, usize)> {
+    let mut stack = vec![(maze.get_starting_point(), 0)]; // Stack for DFS
+    let mut visited = HashSet::new(); // Track visited cells
+    let mut path = vec![]; // Final path to the goal
+    let mut step = 1;
     let end = maze.get_end_point();
-    let path : Vec<(usize, usize, bool)> = Vec::new();
-    loop {
-        
+    while let Some(current) = stack.pop() {
+        if visited.contains(&current.0) {
+            continue;
+        }
+
+        if step > current.1 {
+            path = path
+                .into_iter()
+                .filter(|x: &(_, usize)| x.1 < current.1)
+                .collect();
+        }
+        step = current.1 + 1;
+        path.push(current);
+        visited.insert(current.0);
+
+        // If we've reached the end, return the path
+        if current.0 == end {
+            return path.into_iter().map(|(coords, _)| coords).collect();
+        }
+        // Explore neighbors
+        for direction in &[
+            Direction::North,
+            Direction::South,
+            Direction::East,
+            Direction::West,
+        ] {
+            let neighbor = direction.move_from(&current.0);
+
+            if maze.in_bounds(neighbor)                // Check bounds
+                && !visited.contains(&neighbor)        // Ensure not visited
+                && !maze.grid[current.0.0][current.0.1]
+                    .walls
+                    .contains(direction)
+            // Check if there's no wall in the current direction
+            {
+                stack.push((neighbor, step));
+            }
+        }
     }
-    Vec::new()
+
+    // If no solution exists, return an empty path
+    vec![]
 }
+
+async fn solve_maze_animated(maze: &Maze, cell_size: f32) -> Vec<(usize, usize)> {
+    let mut stack = vec![(maze.get_starting_point(), 0)]; // Stack for DFS
+    let mut visited = HashSet::new(); // Track visited cells
+    let mut path = vec![]; // Final path to the goal
+    let mut step = 1;
+    let end = maze.get_end_point();
+
+    while let Some(current) = stack.pop() {
+        if visited.contains(&current.0) {
+            continue;
+        }
+        sleep(Duration::new(0, 10000000));
+        // Backtrack path if needed
+        if step > current.1 {
+            path = path
+                .into_iter()
+                .filter(|x: &(_, usize)| x.1 < current.1)
+                .collect();
+        }
+        step = current.1 + 1;
+        path.push(current);
+        visited.insert(current.0);
+
+        // Draw the current state of the maze and path
+        let visual_path: Vec<(usize, usize)> = path.iter().map(|&(coords, _)| coords).collect();
+        draw_maze(maze, cell_size, &visual_path).await;
+        next_frame().await; // Wait for the next frame to animate
+
+        // If we've reached the end, return the path
+        if current.0 == end {
+            return path.into_iter().map(|(coords, _)| coords).collect();
+        }
+
+        // Explore neighbors
+        for direction in &[
+            Direction::North,
+            Direction::South,
+            Direction::East,
+            Direction::West,
+        ] {
+            let neighbor = direction.move_from(&current.0);
+
+            if maze.in_bounds(neighbor)                // Check bounds
+                && !visited.contains(&neighbor)        // Ensure not visited
+                && !maze.grid[current.0.0][current.0.1]
+                    .walls
+                    .contains(direction)
+            // Check if there's no wall in the current direction
+            {
+                stack.push((neighbor, step));
+            }
+        }
+    }
+
+    // If no solution exists, return an empty path
+    vec![]
+}
+
 
 
 #[macroquad::main("Maze Visualizer")]
 async fn main() {
-    let maze = random_maze(10, 10);
+    let maze = random_maze(20, 20);
     let cell_size = 20.0;
+    let temp: Vec<(usize, usize)> = Vec::new();
+    draw_maze(&maze, cell_size, &temp).await;
 
+    let solution = solve_maze_animated(&maze, cell_size).await;
     // Game loop
     loop {
-        draw_maze(&maze, cell_size).await;
+        draw_maze(&maze, cell_size, &solution).await;
         next_frame().await;
-
     }
 }
 
