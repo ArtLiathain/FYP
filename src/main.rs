@@ -1,7 +1,5 @@
-use std::{thread::sleep, time::Duration};
 
-use maze::maze::Maze;
-use maze_logic::maze_logic::{random_wilson_maze, solve_maze_dfs, solve_maze_for_animated_dfs};
+use maze_logic::maze_logic::{random_wilson_maze, solve_maze_for_animated_dfs};
 use render::render::render_maze;
 
 pub mod maze;
