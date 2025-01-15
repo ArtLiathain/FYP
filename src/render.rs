@@ -1,6 +1,6 @@
 pub mod render {
     use crate::maze::maze::{Cell, Direction, Maze};
-    use macroquad::color::{BLACK, BLUE, GOLD, GREEN, PINK, WHITE};
+    use macroquad::color::{BLACK, BLUE, DARKBLUE, GOLD, GREEN, ORANGE, PINK, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
 
@@ -21,6 +21,14 @@ pub mod render {
         let coordinates = (cell.x, cell.y);
         let thickness = 1.0;
 
+        if cell.walls.len() == 4 {
+            draw_rectangle(x, y, cell_size, cell_size, DARKBLUE);
+        }
+        else {
+            draw_rectangle(x, y, cell_size, cell_size, ORANGE);
+
+        }
+
         if maze.visited.contains(&coordinates) {
             draw_rectangle(x, y, cell_size, cell_size, BLUE);
         }
@@ -38,7 +46,7 @@ pub mod render {
         }
         // Draw the cell walls based on its directions
         if cell.walls.contains(&Direction::North) {
-            draw_line(x, y, x + cell_size, y, thickness, WHITE);
+            draw_line(x, y, x + cell_size, y, thickness, PINK);
         }
         if cell.walls.contains(&Direction::East) {
             draw_line(
@@ -47,7 +55,7 @@ pub mod render {
                 x + cell_size,
                 y + cell_size,
                 thickness,
-                WHITE,
+                PINK,
             );
         }
         if cell.walls.contains(&Direction::South) {
@@ -57,11 +65,11 @@ pub mod render {
                 x + cell_size,
                 y + cell_size,
                 thickness,
-                WHITE,
+                PINK,
             );
         }
         if cell.walls.contains(&Direction::West) {
-            draw_line(x, y, x, y + cell_size, thickness, WHITE);
+            draw_line(x, y, x, y + cell_size, thickness, PINK);
         }
     }
 

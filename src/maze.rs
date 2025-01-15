@@ -77,7 +77,7 @@ pub mod maze {
         pub fn break_walls_for_path(&mut self, path: Vec<((usize, usize), Direction)>) {
             for i in 0..path.len() - 1 {
                 let current_cell = path[i].0;
-                let next_cell = path[i + 1].0;
+                let next_cell = Direction::move_from(&path[i].1, &path[i].0);
                 let direction = path[i].1;
                 self.grid[next_cell.0][next_cell.1]
                     .walls
@@ -86,6 +86,17 @@ pub mod maze {
                     .walls
                     .remove(&direction);
             }
+        }
+        pub fn break_walls_for_path_animated(&mut self, path: &Vec<((usize, usize), Direction)>, index : usize) {
+                let current_cell = path[index].0;
+                let next_cell = Direction::move_from(&path[index].1, &path[index].0);
+                let direction = path[index].1;
+                self.grid[next_cell.0][next_cell.1]
+                    .walls
+                    .remove(&Direction::opposite_direction(&direction));
+                self.grid[current_cell.0][current_cell.1]
+                    .walls
+                    .remove(&direction);
         }
     }
 

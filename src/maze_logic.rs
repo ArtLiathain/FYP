@@ -1,24 +1,30 @@
 pub mod maze_logic {
     use std::collections::HashSet;
 
-    use rand::Rng;
+    use rand::{seq::IteratorRandom, Rng};
+    use union_find::{QuickUnionUf, UnionBySize, UnionFind};
 
     use crate::maze::maze::{Direction, Maze};
-
-    pub fn random_wilson_maze(width: usize, height: usize) -> Maze {
+    type Coordinate = (usize, usize);
+    pub fn init_maze(width: usize, height: usize) -> Maze {
         let mut maze: Maze = Maze::new(width, height);
-        let mut unvisited_nodes: Vec<(usize, usize)> = (0..width)
-            .flat_map(|x| (0..height).map(move |y| (x, y)))
-            .collect();
-
-        let mut visited_nodes: HashSet<(usize, usize)> = HashSet::new();
-        let end_coordinate = (width / 2, height / 2);
         maze.set_end((width / 2, height / 2));
-        maze.set_starting_point(unvisited_nodes[height - 1], Some(&Direction::South));
-        let mut current = unvisited_nodes.remove(height - 1);
+        maze.set_starting_point((0, height - 1), Some(&Direction::South));
+        maze
+    }
+
+    pub fn random_wilson_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
+        let mut unvisited_nodes: Vec<Coordinate> = (0..maze.width)
+            .flat_map(|x| (0..maze.height).map(move |y| (x, y)))
+            .collect();
+        let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
+        let mut visited_nodes: HashSet<Coordinate> = HashSet::new();
+        let end_coordinate = (maze.width / 2, maze.height / 2);
+
+        let mut current = unvisited_nodes.remove(maze.height - 1);
         while !unvisited_nodes.is_empty() {
-            let mut new_path: Vec<((usize, usize), Direction)> = Vec::new();
-            let mut new_coordinates: (usize, usize);
+            let mut new_path: Vec<(Coordinate, Direction)> = Vec::new();
+            let mut new_coordinates: Coordinate;
             loop {
                 let direction = Direction::random();
                 new_coordinates = Direction::move_from(&direction, &current);
@@ -38,13 +44,11 @@ pub mod maze_logic {
                 }
 
                 if end_coordinate == new_coordinates || visited_nodes.contains(&new_coordinates) {
-                    new_path.push((new_coordinates, direction));
-
                     break;
                 }
                 current = new_coordinates;
             }
-            Maze::break_walls_for_path(&mut maze, new_path.clone());
+            walls_to_break.extend(new_path.clone());
             for (coords, _) in new_path {
                 visited_nodes.insert(coords);
                 unvisited_nodes.retain(|&coord| coord != coords);
@@ -62,16 +66,55 @@ pub mod maze_logic {
                 continue;
             }
             path.push((current, direction));
-            path.push((new_coordinates, direction));
 
             break;
         }
-        Maze::break_walls_for_path(&mut maze, path);
+        walls_to_break.extend(path.clone());
 
-        maze
+        walls_to_break
     }
 
-    pub fn solve_maze_dfs(maze: &Maze) -> Vec<(usize, usize)> {
+    fn unique_coordinate_index(coord: Coordinate, width: usize) -> usize {
+        coord.1 * width + coord.0
+    }
+
+    pub fn random_kruzkals_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
+        let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
+        let mut edge_set: HashSet<(Coordinate, Direction)> = HashSet::new();
+        let mut union_find = QuickUnionUf::<UnionBySize>::new(maze.width * maze.height);
+        //Put all edges into a burlap sack
+        for x in 0..maze.width {
+            for y in 0..maze.height {
+                if x + 1 < maze.width {
+                    edge_set.insert(((x, y), Direction::East));
+                }
+                if y + 1 < maze.height {
+                    edge_set.insert(((x, y), Direction::South));
+                }
+            }
+        }
+        while !edge_set.is_empty() {
+            let mut rng = rand::thread_rng();
+            let random_edge = match edge_set.iter().choose(&mut rng).cloned() {
+                Some(edge) => edge,
+                None => break,
+            };
+            let new_cell = Direction::move_from(&random_edge.1, &random_edge.0);
+            let cell_union_set = unique_coordinate_index(random_edge.0, maze.width);
+            let new_cell_union_set = unique_coordinate_index(new_cell, maze.width);
+            if union_find.find(cell_union_set) == union_find.find(new_cell_union_set) {
+                edge_set.remove(&random_edge);
+                continue;
+            }
+            union_find.union(cell_union_set, new_cell_union_set);
+            walls_to_break.push(random_edge);
+            edge_set.remove(&random_edge);
+        }
+        
+        walls_to_break
+    }
+
+    pub fn solve_maze_dfs(maze: &Maze) -> Vec<Coordinate> {
         let mut stack = vec![(maze.get_starting_point(), 0)]; // Stack for DFS
         let mut visited = HashSet::new(); // Track visited cells
         let mut path = vec![]; // Final path to the goal
@@ -120,7 +163,7 @@ pub mod maze_logic {
         vec![]
     }
 
-    pub fn solve_maze_for_animated_dfs(maze: &Maze) -> Vec<((usize, usize), usize)> {
+    pub fn solve_maze_for_animated_dfs(maze: &Maze) -> Vec<(Coordinate, usize)> {
         let mut stack = vec![(maze.get_starting_point(), 0)]; // Stack for DFS
         let mut visited_nodes = vec![]; // Stack for DFS
         let mut visited = HashSet::new(); // Track visited cells
