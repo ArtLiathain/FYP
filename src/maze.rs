@@ -1,15 +1,21 @@
 pub mod maze {
     use std::{collections::HashSet, fmt};
 
+    use pyo3::pyclass;
     use rand::Rng;
 
+    #[pyclass]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct Cell {
+        #[pyo3(get, set)]
         pub x: usize,
+        #[pyo3(get, set)]
         pub y: usize,
+        #[pyo3(get)]
         pub walls: HashSet<Direction>,
     }
 
+    #[pyclass]
     #[derive(Debug)]
     pub struct Maze {
         pub width: usize,
@@ -19,6 +25,8 @@ pub mod maze {
         pub visited: HashSet<(usize, usize)>,
         pub start: (usize, usize),
         pub end: (usize, usize),
+        pub steps: usize,
+        pub current_location: (usize, usize),
     }
 
     impl Maze {
@@ -46,6 +54,8 @@ pub mod maze {
                     .collect::<Vec<Vec<Cell>>>(),
                 path: HashSet::new(),
                 visited: HashSet::new(),
+                steps: 0,
+                current_location: (0, height - 1),
             }
         }
 
@@ -73,11 +83,27 @@ pub mod maze {
                 cell.walls.remove(wall);
             }
         }
+        pub fn take_step(&mut self, amount: usize) {
+            self.steps += amount;
+        }
+
+        pub fn move_from(
+            &self,
+            direction: &Direction,
+            coordinates: &(usize, usize),
+        ) -> (usize, usize) {
+            match direction {
+                Direction::North => (coordinates.0, coordinates.1.saturating_sub(1)),
+                Direction::South => (coordinates.0, coordinates.1 + 1),
+                Direction::East => (coordinates.0 + 1, coordinates.1),
+                Direction::West => (coordinates.0.saturating_sub(1), coordinates.1),
+            }
+        }
 
         pub fn break_walls_for_path(&mut self, path: Vec<((usize, usize), Direction)>) {
             for i in 0..path.len() - 1 {
                 let current_cell = path[i].0;
-                let next_cell = Direction::move_from(&path[i].1, &path[i].0);
+                let next_cell = self.move_from(&path[i].1, &path[i].0);
                 let direction = path[i].1;
                 self.grid[next_cell.0][next_cell.1]
                     .walls
@@ -87,20 +113,39 @@ pub mod maze {
                     .remove(&direction);
             }
         }
-        pub fn break_walls_for_path_animated(&mut self, path: &Vec<((usize, usize), Direction)>, index : usize) {
-                let current_cell = path[index].0;
-                let next_cell = Direction::move_from(&path[index].1, &path[index].0);
-                let direction = path[index].1;
-                self.grid[next_cell.0][next_cell.1]
-                    .walls
-                    .remove(&Direction::opposite_direction(&direction));
-                self.grid[current_cell.0][current_cell.1]
-                    .walls
-                    .remove(&direction);
+        pub fn break_walls_for_path_animated(
+            &mut self,
+            path: &Vec<((usize, usize), Direction)>,
+            index: usize,
+        ) {
+            let current_cell = path[index].0;
+            let next_cell = self.move_from(&path[index].1, &path[index].0);
+            let direction = path[index].1;
+            self.grid[next_cell.0][next_cell.1]
+                .walls
+                .remove(&Direction::opposite_direction(&direction));
+            self.grid[current_cell.0][current_cell.1]
+                .walls
+                .remove(&direction);
+        }
+    }
+
+    impl Maze {
+        pub fn move_from_current(
+            &self,
+            direction: &Direction,
+        ) -> (usize, usize) {
+            match direction {
+                Direction::North => (self.current_location.0, self.current_location.1.saturating_sub(1)),
+                Direction::South => (self.current_location.0, self.current_location.1 + 1),
+                Direction::East => (self.current_location.0 + 1, self.current_location.1),
+                Direction::West => (self.current_location.0.saturating_sub(1), self.current_location.1),
+            }
         }
     }
 
     #[repr(usize)]
+    #[pyclass(eq, eq_int)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Direction {
         North = 0,
@@ -128,15 +173,6 @@ pub mod maze {
                 1 => Direction::South,
                 2 => Direction::East,
                 _ => Direction::West,
-            }
-        }
-
-        pub fn move_from(&self, coordinates: &(usize, usize)) -> (usize, usize) {
-            match self {
-                Direction::North => (coordinates.0, coordinates.1.saturating_sub(1)),
-                Direction::South => (coordinates.0, coordinates.1 + 1),
-                Direction::East => (coordinates.0 + 1, coordinates.1),
-                Direction::West => (coordinates.0.saturating_sub(1), coordinates.1),
             }
         }
 

@@ -1,8 +1,12 @@
-
-use std::{thread::{self, sleep}, time::Duration};
+use std::{
+    thread::{self, sleep},
+    time::Duration,
+};
 
 use maze::maze::Maze;
-use maze_logic::maze_logic::{init_maze, random_kruzkals_maze, random_wilson_maze, solve_maze_for_animated_dfs};
+use maze_logic::maze_logic::{
+    init_maze, random_kruzkals_maze, random_wilson_maze, solve_maze_for_animated_dfs,
+};
 use render::render::render_maze;
 
 pub mod maze;
@@ -12,17 +16,15 @@ pub mod render;
 #[macroquad::main("Maze Visualizer")]
 async fn main() {
     let cell_size = 20.0;
-    let mut maze = init_maze(40, 20);
-    let walls_to_break_for_maze = random_kruzkals_maze(&maze);
+    let mut maze = init_maze(5, 5);
+    let walls_to_break_for_maze = random_kruzkals_maze(&mut maze);
     for i in 0..walls_to_break_for_maze.len() {
         Maze::break_walls_for_path_animated(&mut maze, &walls_to_break_for_maze, i);
         render_maze(&maze, cell_size).await;
-    thread::sleep(Duration::from_millis(10));
-
+        thread::sleep(Duration::from_millis(10));
     }
-    let visited = solve_maze_for_animated_dfs(&maze);
+    let visited = solve_maze_for_animated_dfs(&mut maze);
     let mut step: usize = 0;
-    thread::sleep(Duration::from_millis(10000));
 
     loop {
         if step >= visited.len() {
@@ -36,9 +38,12 @@ async fn main() {
         }
         maze.visited.insert(current.0);
         maze.path.insert(current.0);
+        thread::sleep(Duration::from_millis(500));
+
         render_maze(&maze, cell_size).await;
         step += 1;
     }
+    println!("{}", maze.steps);
     loop {
         render_maze(&maze, cell_size).await;
     }

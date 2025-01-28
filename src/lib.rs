@@ -1,23 +1,24 @@
-// use pyo3::prelude::*;
-// use rand::Rng;
-// use union_find::QuickFindUf;
+use maze::maze::{Cell, Maze};
+use maze_logic::maze_logic::init_maze;
+use pyo3::prelude::*;
+pub mod maze;
+pub mod maze_logic;
 
-// /// Python module implemented in Rust
-// #[pymodule]
-// fn simulation(_py: Python, m: &PyModule) -> PyResult<()> {
-//     // Add functions to the module
-//     #[pyfn(m, "random_number")]
-//     fn random_number() -> PyResult<i32> {
-//         let mut rng = rand::thread_rng();
-//         Ok(rng.gen_range(1..=100)) // Return a random number
-//     }
+#[pyfunction]
+fn init_maze_python(width: usize, height : usize) -> PyResult<Maze> {
+    Ok(init_maze(width, height))
+}
+#[pyfunction]
+fn return_steps(maze: &Maze) -> PyResult<usize> {
+    Ok(maze.steps)
+}
 
-//     #[pyfn(m, "union_find_example")]
-//     fn union_find_example() -> PyResult<String> {
-//         let mut uf = QuickFindUf::new(10);
-//         uf.union(1, 2);
-//         Ok(format!("1 and 2 connected: {}", uf.connected(1, 2))) // Return a string
-//     }
 
-//     Ok(()) // Return Ok(()) from the #[pymodule] function
-// }
+#[pymodule]
+fn simulation(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(init_maze_python, m)?)?;
+    m.add_function(wrap_pyfunction!(return_steps, m)?)?;
+    m.add_class::<Cell>()?;
+    m.add_class::<Maze>()?;
+    Ok(())
+}
