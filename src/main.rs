@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use maze::maze::Maze;
+use maze::maze::{Direction, Maze};
 use maze_logic::maze_logic::{
     init_maze, random_kruzkals_maze, random_wilson_maze, solve_maze_for_animated_dfs,
 };
@@ -17,15 +17,17 @@ pub mod render;
 async fn main() {
     let cell_size = 20.0;
     let mut maze = init_maze(5, 5);
+    
     let walls_to_break_for_maze = random_kruzkals_maze(&mut maze);
     for i in 0..walls_to_break_for_maze.len() {
         Maze::break_walls_for_path_animated(&mut maze, &walls_to_break_for_maze, i);
         render_maze(&maze, cell_size).await;
         thread::sleep(Duration::from_millis(10));
     }
+    
     let visited = solve_maze_for_animated_dfs(&mut maze);
     let mut step: usize = 0;
-
+    thread::sleep(Duration::from_millis(1000));
     loop {
         if step >= visited.len() {
             break;

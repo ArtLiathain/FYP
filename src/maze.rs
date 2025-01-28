@@ -1,7 +1,7 @@
 pub mod maze {
     use std::{collections::HashSet, fmt};
 
-    use pyo3::pyclass;
+    use pyo3::{pyclass, pymethods};
     use rand::Rng;
 
     #[pyclass]
@@ -24,7 +24,9 @@ pub mod maze {
         pub path: HashSet<(usize, usize)>,
         pub visited: HashSet<(usize, usize)>,
         pub start: (usize, usize),
+        #[pyo3(get)]
         pub end: (usize, usize),
+        #[pyo3(get)]
         pub steps: usize,
         pub current_location: (usize, usize),
     }
@@ -130,17 +132,44 @@ pub mod maze {
         }
     }
 
+    #[pymethods]
     impl Maze {
-        pub fn move_from_current(
-            &self,
-            direction: &Direction,
-        ) -> (usize, usize) {
-            match direction {
-                Direction::North => (self.current_location.0, self.current_location.1.saturating_sub(1)),
-                Direction::South => (self.current_location.0, self.current_location.1 + 1),
-                Direction::East => (self.current_location.0 + 1, self.current_location.1),
-                Direction::West => (self.current_location.0.saturating_sub(1), self.current_location.1),
+        pub fn move_from_current(&mut self, direction: &Direction) -> (usize, usize) {
+            if self.grid[self.current_location.0][self.current_location.1]
+                .walls
+                .contains(direction)
+            {
+                return self.current_location;
             }
+            self.steps += 1;
+            match direction {
+                Direction::North => {
+                    self.current_location.1 = self.current_location.1.saturating_sub(1);
+                }
+                Direction::South => {
+                    self.current_location.1 = self.current_location.1 + 1;
+                }
+                Direction::East => {
+                    self.current_location.0 = self.current_location.0 + 1;
+                }
+                Direction::West => {
+                    self.current_location.0 = self.current_location.0.saturating_sub(1);
+                }
+            }
+            self.current_location
+        }
+
+        pub fn available_paths(&self) -> HashSet<Direction> {
+            let walls = HashSet::from([
+                Direction::North,
+                Direction::South,
+                Direction::East,
+                Direction::West,
+            ]);
+            walls
+                .difference(&self.grid[self.current_location.0][self.current_location.1].walls)
+                .cloned()
+                .collect()
         }
     }
 
@@ -163,6 +192,12 @@ pub mod maze {
                 Direction::West => "West",
             };
             write!(f, "{}", direction_str)
+        }
+    }
+    #[pymethods]
+    impl Direction {
+        pub fn __hash__(&self) -> u64 {
+            *self as u64
         }
     }
 

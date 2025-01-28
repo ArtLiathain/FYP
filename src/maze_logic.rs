@@ -9,7 +9,7 @@ pub mod maze_logic {
     pub fn init_maze(width: usize, height: usize) -> Maze {
         let mut maze: Maze = Maze::new(width, height);
         maze.set_end((width / 2, height / 2));
-        maze.set_starting_point((0, height - 1), Some(&Direction::South));
+        maze.set_starting_point((0, height - 1), None);
         maze
     }
 
