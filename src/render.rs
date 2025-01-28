@@ -22,10 +22,10 @@ pub mod render {
         let thickness = 1.0;
 
         if cell.walls.len() == 4 {
-            draw_rectangle(x, y, cell_size, cell_size, DARKBLUE);
+            draw_rectangle(x, y, cell_size, cell_size, BLACK);
         }
         else {
-            draw_rectangle(x, y, cell_size, cell_size, ORANGE);
+            draw_rectangle(x, y, cell_size, cell_size, WHITE);
 
         }
 
