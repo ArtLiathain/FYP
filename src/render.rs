@@ -22,10 +22,10 @@ pub mod render {
         let thickness = 1.0;
 
         if cell.walls.len() == 4 {
-            draw_rectangle(x, y, cell_size, cell_size, DARKBLUE);
+            draw_rectangle(x, y, cell_size, cell_size, BLACK);
         }
         else {
-            draw_rectangle(x, y, cell_size, cell_size, ORANGE);
+            draw_rectangle(x, y, cell_size, cell_size, WHITE);
 
         }
 
@@ -46,7 +46,7 @@ pub mod render {
         }
         // Draw the cell walls based on its directions
         if cell.walls.contains(&Direction::North) {
-            draw_line(x, y, x + cell_size, y, thickness, PINK);
+            draw_line(x, y, x + cell_size, y, thickness, BLACK);
         }
         if cell.walls.contains(&Direction::East) {
             draw_line(
@@ -55,7 +55,7 @@ pub mod render {
                 x + cell_size,
                 y + cell_size,
                 thickness,
-                PINK,
+                BLACK,
             );
         }
         if cell.walls.contains(&Direction::South) {
@@ -65,11 +65,11 @@ pub mod render {
                 x + cell_size,
                 y + cell_size,
                 thickness,
-                PINK,
+                BLACK,
             );
         }
         if cell.walls.contains(&Direction::West) {
-            draw_line(x, y, x, y + cell_size, thickness, PINK);
+            draw_line(x, y, x, y + cell_size, thickness, BLACK);
         }
     }
 
