@@ -23,11 +23,14 @@ pub mod maze {
         pub grid: Vec<Vec<Cell>>,
         pub path: HashSet<(usize, usize)>,
         pub visited: HashSet<(usize, usize)>,
+        #[pyo3(get)]
+
         pub start: (usize, usize),
         #[pyo3(get)]
         pub end: (usize, usize),
         #[pyo3(get)]
         pub steps: usize,
+        #[pyo3(get)]
         pub current_location: (usize, usize),
     }
 
@@ -199,6 +202,15 @@ pub mod maze {
         pub fn __hash__(&self) -> u64 {
             *self as u64
         }
+
+        pub fn opposite_direction(&self) -> Direction {
+            match self {
+                Direction::North => Direction::South,
+                Direction::South => Direction::North,
+                Direction::East => Direction::West,
+                Direction::West => Direction::East,
+            }
+        }
     }
 
     impl Direction {
@@ -211,13 +223,6 @@ pub mod maze {
             }
         }
 
-        pub fn opposite_direction(&self) -> Direction {
-            match self {
-                Direction::North => Direction::South,
-                Direction::South => Direction::North,
-                Direction::East => Direction::West,
-                Direction::West => Direction::East,
-            }
-        }
+        
     }
 }

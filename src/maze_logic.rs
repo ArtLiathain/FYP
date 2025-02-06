@@ -192,7 +192,6 @@ pub mod maze_logic {
 
             if current.0 == end {
                 maze.take_step(step-1);
-                println!("Visited nodes {:?}", visited_nodes );
                 return visited_nodes;
             }
 

@@ -16,7 +16,7 @@ pub mod render;
 #[macroquad::main("Maze Visualizer")]
 async fn main() {
     let cell_size = 20.0;
-    let mut maze = init_maze(5, 5);
+    let mut maze = init_maze(25, 25);
     
     let walls_to_break_for_maze = random_kruzkals_maze(&mut maze);
     for i in 0..walls_to_break_for_maze.len() {
@@ -40,12 +40,10 @@ async fn main() {
         }
         maze.visited.insert(current.0);
         maze.path.insert(current.0);
-        thread::sleep(Duration::from_millis(500));
 
         render_maze(&maze, cell_size).await;
         step += 1;
     }
-    println!("{}", maze.steps);
     loop {
         render_maze(&maze, cell_size).await;
     }
