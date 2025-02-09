@@ -6,7 +6,7 @@ east = simulation.Direction.East
 west = simulation.Direction.West
 
 def dfs_solve(maze):
-    step = 0
+    step = 1
     stack = []
     available_paths = maze.available_paths()
     for direction in available_paths:
@@ -20,16 +20,18 @@ def dfs_solve(maze):
         if (current[0], current[2]) in visited_set:
             continue
         if len(path) > 0 :         
-            temp_current = path[len(path)- 1]
-            while temp_current[1] > current[1]: 
-                print("RUNNING")
-                temp_current = path.pop()
+            temp_current = path[-1]
+            while temp_current[1] >= current[1] and len(path) > 0: 
                 maze.move_from_current(temp_current[2].opposite_direction())
+                path.pop()
+                temp_current = path[-1]
+                
                 
         print("current" , current)
         print("location", maze.current_location)
         print("location", maze.current_location == current[0])
         print("path", path)
+        print("========================================")
         visited_set[((current[0], current[2]))] = 0
         step = current[1] + 1
         path.append(current)
@@ -47,9 +49,9 @@ def dfs_solve(maze):
          
     
 
-maze = simulation.init_maze_python(5,5)
+maze = simulation.init_maze_python(15,15)
 print(maze.steps) 
-simulation.create_wilsons_maze(maze)
+simulation.create_kruzkals_maze(maze)
 print(dfs_solve(maze) )
 print("DONE SOLVE")
 print(maze.steps) 

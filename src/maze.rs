@@ -1,11 +1,11 @@
 pub mod maze {
-    use std::{collections::HashSet, fmt};
-
+    use std::{collections::HashSet, fmt, fs::File, io::Read};
+    use serde::{Serialize, Deserialize};
     use pyo3::{pyclass, pymethods};
     use rand::Rng;
 
     #[pyclass]
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Cell {
         #[pyo3(get, set)]
         pub x: usize,
@@ -16,7 +16,7 @@ pub mod maze {
     }
 
     #[pyclass]
-    #[derive(Debug)]
+    #[derive(Debug, Serialize, Deserialize)]
     pub struct Maze {
         pub width: usize,
         pub height: usize,
@@ -162,6 +162,21 @@ pub mod maze {
             self.current_location
         }
 
+    pub fn save_maze_to_file(maze: &Maze, filename: &str) -> PyResult<()> {
+        // File operation happens synchronously, no async or threads needed
+        let file = File::create(filename).map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+        serde_json::to_writer_pretty(file, maze).map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+        Ok(())
+    }
+
+        pub fn load_maze_from_file(filename: &str) -> std::io::Result<Maze> {
+            let mut file = File::open(filename)?;
+            let mut contents = String::new();
+            file.read_to_string(&mut contents)?;
+            let maze: Maze = serde_json::from_str(&contents)?;
+            Ok(maze)
+        }
+
         pub fn available_paths(&self) -> HashSet<Direction> {
             let walls = HashSet::from([
                 Direction::North,
@@ -178,7 +193,7 @@ pub mod maze {
 
     #[repr(usize)]
     #[pyclass(eq, eq_int)]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub enum Direction {
         North = 0,
         South = 1,
