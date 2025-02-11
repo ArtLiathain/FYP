@@ -21,7 +21,7 @@ pub mod maze_logic {
         let mut visited_nodes: HashSet<Coordinate> = HashSet::new();
         let end_coordinate = (maze.width / 2, maze.height / 2);
 
-        let mut current = unvisited_nodes.remove(maze.height - 1);
+        let mut current = unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
         while !unvisited_nodes.is_empty() {
             let mut new_path: Vec<(Coordinate, Direction)> = Vec::new();
             let mut new_coordinates: Coordinate;

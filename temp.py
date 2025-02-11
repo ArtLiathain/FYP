@@ -42,10 +42,7 @@ def dfs_solve(maze):
         available_paths.remove(current[2].opposite_direction())
         for direction in available_paths:
             stack.append((maze.current_location, step, direction))
-
-        
-
-        
+   
          
     
 
@@ -56,3 +53,5 @@ print(dfs_solve(maze) )
 print("DONE SOLVE")
 print(maze.steps) 
 print(maze.end) 
+with open('maze.json', 'w') as file:
+    file.write(maze.to_json())

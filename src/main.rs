@@ -1,9 +1,9 @@
 use std::{
-    thread::{self, sleep},
-    time::Duration,
+    env, fs::File, io::Read, thread::{self, sleep}, time::Duration
 };
 
-use maze::maze::{Direction, Maze};
+use macroquad::file;
+use maze::maze::{ Direction, Maze};
 use maze_logic::maze_logic::{
     init_maze, random_kruzkals_maze, random_wilson_maze, solve_maze_for_animated_dfs,
 };
@@ -15,6 +15,8 @@ pub mod render;
 
 #[macroquad::main("Maze Visualizer")]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
     let cell_size = 20.0;
     let mut maze = init_maze(25, 25);
     let walls_to_break_for_maze = random_kruzkals_maze(&mut maze);
@@ -25,10 +27,13 @@ async fn main() {
         sleep(Duration::from_millis(10));
     }
 
-    
     let visited = solve_maze_for_animated_dfs(&mut maze);
-    let mut step: usize = 0;
     thread::sleep(Duration::from_millis(1000));
+    render_maze_loop(&mut maze, visited, cell_size).await;
+}
+
+async fn render_maze_loop(maze: &mut Maze, visited: Vec<((usize, usize), usize)>, cell_size: f32) {
+    let mut step: usize = 0;
     loop {
         if step >= visited.len() {
             break;
@@ -50,6 +55,35 @@ async fn main() {
     }
 }
 
+fn read_maze_from_file(filename : &str) -> Maze {
+    let mut contents = String::new();
+
+    let _ = match File::open(filename) {
+        Ok(mut file_safe) => match file_safe.read_to_string(&mut contents) {
+            Ok(_) => Ok(contents.clone()),
+            Err(e) => {
+                eprintln!("Error reading file: {}", e);
+                Err(e)
+            }
+        },
+        Err(e) => {
+            eprintln!("Error opening file: {}", e);
+            Err(e)
+        }
+    };
+    Maze::from_json(&contents).unwrap()
+}
+
+fn select_maze_gen_algorithm(algorithm : &str, maze : &mut Maze) -> Vec<((usize, usize), Direction)> {
+    let algorithm_lower = algorithm.to_lowercase();
+    if algorithm_lower == "wilson" {
+        return random_wilson_maze(maze)
+    }
+    else if algorithm_lower == "kruzkal" {
+        return random_kruzkals_maze(maze)
+    }
+    random_kruzkals_maze(maze)
+}
 // #[cfg(test)]
 // mod tests {
 //     use super::*;

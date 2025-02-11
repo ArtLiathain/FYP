@@ -1,8 +1,8 @@
 pub mod maze {
-    use std::{collections::HashSet, fmt, fs::File, io::Read};
-    use serde::{Serialize, Deserialize};
-    use pyo3::{pyclass, pymethods};
+    use pyo3::{pyclass, pymethods, PyErr, PyResult};
     use rand::Rng;
+    use serde::{Deserialize, Serialize};
+    use std::{collections::HashSet, fmt, fs::File, io::Read};
 
     #[pyclass]
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,7 +24,6 @@ pub mod maze {
         pub path: HashSet<(usize, usize)>,
         pub visited: HashSet<(usize, usize)>,
         #[pyo3(get)]
-
         pub start: (usize, usize),
         #[pyo3(get)]
         pub end: (usize, usize),
@@ -162,19 +161,15 @@ pub mod maze {
             self.current_location
         }
 
-    pub fn save_maze_to_file(maze: &Maze, filename: &str) -> PyResult<()> {
-        // File operation happens synchronously, no async or threads needed
-        let file = File::create(filename).map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
-        serde_json::to_writer_pretty(file, maze).map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
-        Ok(())
-    }
+        pub fn to_json(&self) -> PyResult<String> {
+            serde_json::to_string(self)
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+        }
 
-        pub fn load_maze_from_file(filename: &str) -> std::io::Result<Maze> {
-            let mut file = File::open(filename)?;
-            let mut contents = String::new();
-            file.read_to_string(&mut contents)?;
-            let maze: Maze = serde_json::from_str(&contents)?;
-            Ok(maze)
+        #[staticmethod]
+        pub fn from_json(json_str: &str) -> PyResult<Maze> {
+            serde_json::from_str(json_str)
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
         }
 
         pub fn available_paths(&self) -> HashSet<Direction> {
@@ -237,7 +232,5 @@ pub mod maze {
                 _ => Direction::West,
             }
         }
-
-        
     }
 }
