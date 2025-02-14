@@ -1,6 +1,6 @@
 pub mod render {
     use crate::maze::maze::{Cell, Direction, Maze};
-    use macroquad::color::{BLACK, BLUE, DARKBLUE, GOLD, GREEN, MAGENTA, ORANGE, WHITE};
+    use macroquad::color::{BLACK, DARKBLUE, GOLD, GREEN, LIGHTGRAY, MAGENTA, ORANGE, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
 
@@ -30,11 +30,11 @@ pub mod render {
         }
 
         if maze.visited.contains(&coordinates) {
-            draw_rectangle(x, y, cell_size, cell_size, BLUE);
+            draw_rectangle(x, y, cell_size, cell_size, LIGHTGRAY);
         }
 
         if maze.path.contains(&coordinates) {
-            draw_rectangle(x, y, cell_size, cell_size, MAGENTA);
+            draw_rectangle(x, y, cell_size, cell_size, GOLD);
         }
 
         if coordinates == maze.end {

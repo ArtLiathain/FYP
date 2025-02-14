@@ -1,8 +1,10 @@
 pub mod maze {
     use pyo3::{pyclass, pymethods, PyErr, PyResult};
-    use rand::Rng;
+    use rand::{seq::index, Rng};
     use serde::{Deserialize, Serialize};
-    use std::{collections::HashSet, fmt, fs::File, io::Read};
+    use std::{collections::HashSet, fmt};
+
+    use crate::maze_logic::maze_logic::Coordinate;
 
     #[pyclass]
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,16 +23,18 @@ pub mod maze {
         pub width: usize,
         pub height: usize,
         pub grid: Vec<Vec<Cell>>,
-        pub path: HashSet<(usize, usize)>,
-        pub visited: HashSet<(usize, usize)>,
+        #[pyo3(set, get)]
+        pub path_followed: Vec<Coordinate>,
+        pub path: HashSet<Coordinate>,
+        pub visited: HashSet<Coordinate>,
         #[pyo3(get)]
-        pub start: (usize, usize),
+        pub start: Coordinate,
         #[pyo3(get)]
-        pub end: (usize, usize),
+        pub end: Coordinate,
         #[pyo3(get)]
         pub steps: usize,
         #[pyo3(get)]
-        pub current_location: (usize, usize),
+        pub current_location: Coordinate,
     }
 
     impl Maze {
@@ -58,28 +62,29 @@ pub mod maze {
                     .collect::<Vec<Vec<Cell>>>(),
                 path: HashSet::new(),
                 visited: HashSet::new(),
+                path_followed: vec![],
                 steps: 0,
                 current_location: (0, height - 1),
             }
         }
 
-        pub fn set_end(&mut self, cell: (usize, usize)) {
+        pub fn set_end(&mut self, cell: Coordinate) {
             self.end = cell;
         }
-        pub fn in_bounds(&self, cell: (usize, usize)) -> bool {
+        pub fn in_bounds(&self, cell: Coordinate) -> bool {
             cell.0 < self.width && cell.1 < self.height
         }
 
-        pub fn get_starting_point(&self) -> (usize, usize) {
+        pub fn get_starting_point(&self) -> Coordinate {
             self.start
         }
-        pub fn get_end_point(&self) -> (usize, usize) {
+        pub fn get_end_point(&self) -> Coordinate {
             self.end
         }
 
         pub fn set_starting_point(
             &mut self,
-            coordinates: (usize, usize),
+            coordinates: Coordinate,
             delete_wall: Option<&Direction>,
         ) {
             let cell = &mut self.grid[coordinates.0][coordinates.1];
@@ -94,8 +99,8 @@ pub mod maze {
         pub fn move_from(
             &self,
             direction: &Direction,
-            coordinates: &(usize, usize),
-        ) -> (usize, usize) {
+            coordinates: &Coordinate,
+        ) -> Coordinate {
             match direction {
                 Direction::North => (coordinates.0, coordinates.1.saturating_sub(1)),
                 Direction::South => (coordinates.0, coordinates.1 + 1),
@@ -104,22 +109,14 @@ pub mod maze {
             }
         }
 
-        pub fn break_walls_for_path(&mut self, path: Vec<((usize, usize), Direction)>) {
-            for i in 0..path.len() - 1 {
-                let current_cell = path[i].0;
-                let next_cell = self.move_from(&path[i].1, &path[i].0);
-                let direction = path[i].1;
-                self.grid[next_cell.0][next_cell.1]
-                    .walls
-                    .remove(&Direction::opposite_direction(&direction));
-                self.grid[current_cell.0][current_cell.1]
-                    .walls
-                    .remove(&direction);
+        pub fn break_walls_for_path(&mut self, path: Vec<(Coordinate, Direction)>) {
+            for i in 0..path.len(){
+                self.break_wall_for_path( &path, i);
             }
         }
-        pub fn break_walls_for_path_animated(
+        pub fn break_wall_for_path(
             &mut self,
-            path: &Vec<((usize, usize), Direction)>,
+            path: &Vec<(Coordinate, Direction)>,
             index: usize,
         ) {
             let current_cell = path[index].0;
@@ -136,7 +133,7 @@ pub mod maze {
 
     #[pymethods]
     impl Maze {
-        pub fn move_from_current(&mut self, direction: &Direction) -> (usize, usize) {
+        pub fn move_from_current(&mut self, direction: &Direction) -> Coordinate {
             if self.grid[self.current_location.0][self.current_location.1]
                 .walls
                 .contains(direction)

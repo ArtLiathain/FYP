@@ -19,13 +19,13 @@ async fn main() {
     println!("{:?}", args);
     let cell_size = 20.0;
     let mut maze = init_maze(25, 25);
-    let walls_to_break_for_maze = random_kruzkals_maze(&mut maze);
-
-    for i in 0..walls_to_break_for_maze.len() {
-        Maze::break_walls_for_path_animated(&mut maze, &walls_to_break_for_maze, i);
-        render_maze(&maze, cell_size).await;
-        sleep(Duration::from_millis(10));
-    }
+    let walls_to_break_for_maze: Vec<((usize, usize), Direction)> = random_kruzkals_maze(&mut maze);
+    maze.break_walls_for_path(walls_to_break_for_maze);
+    // for i in 0..walls_to_break_for_maze.len() {
+    //     maze.break_wall_for_path( &walls_to_break_for_maze, i);
+    //     render_maze(&maze, cell_size).await;
+    //     sleep(Duration::from_millis(10));
+    // }
 
     let visited = solve_maze_for_animated_dfs(&mut maze);
     thread::sleep(Duration::from_millis(1000));

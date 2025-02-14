@@ -5,7 +5,7 @@ pub mod maze_logic {
     use union_find::{QuickUnionUf, UnionBySize, UnionFind};
 
     use crate::maze::maze::{Direction, Maze};
-    type Coordinate = (usize, usize);
+    pub type Coordinate = (usize, usize);
     pub fn init_maze(width: usize, height: usize) -> Maze {
         let mut maze: Maze = Maze::new(width, height);
         maze.set_end((width / 2, height / 2));
