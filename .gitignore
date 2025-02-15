@@ -1,6 +1,6 @@
-/target
-/bin
-/include
-/lib
-/lib64
-/mazeLogs
+**/target
+**/bin
+**/include
+**/lib
+**/lib64
+**/mazeLogs/**

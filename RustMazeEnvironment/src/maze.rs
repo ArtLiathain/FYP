@@ -1,10 +1,11 @@
 pub mod maze {
-    use pyo3::{pyclass, pymethods, PyErr, PyResult};
-    use rand::{seq::index, Rng};
+    use pyo3::{ pyclass, pymethods};
+    use rand::Rng;
     use serde::{Deserialize, Serialize};
     use std::{collections::HashSet, fmt};
 
-    use crate::maze_logic::maze_logic::Coordinate;
+    use crate::environment::environment::Coordinate;
+
 
     #[pyclass]
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,23 +19,15 @@ pub mod maze {
     }
 
     #[pyclass]
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Maze {
         pub width: usize,
         pub height: usize,
         pub grid: Vec<Vec<Cell>>,
-        #[pyo3(set, get)]
-        pub path_followed: Vec<Coordinate>,
-        pub path: HashSet<Coordinate>,
-        pub visited: HashSet<Coordinate>,
         #[pyo3(get)]
         pub start: Coordinate,
         #[pyo3(get)]
         pub end: Coordinate,
-        #[pyo3(get)]
-        pub steps: usize,
-        #[pyo3(get)]
-        pub current_location: Coordinate,
     }
 
     impl Maze {
@@ -60,11 +53,6 @@ pub mod maze {
                             .collect::<Vec<Cell>>()
                     })
                     .collect::<Vec<Vec<Cell>>>(),
-                path: HashSet::new(),
-                visited: HashSet::new(),
-                path_followed: vec![],
-                steps: 0,
-                current_location: (0, height - 1),
             }
         }
 
@@ -92,9 +80,7 @@ pub mod maze {
                 cell.walls.remove(wall);
             }
         }
-        pub fn take_step(&mut self, amount: usize) {
-            self.steps += amount;
-        }
+        
 
         pub fn move_from(
             &self,
@@ -129,59 +115,9 @@ pub mod maze {
                 .walls
                 .remove(&direction);
         }
-    }
+    }   
 
-    #[pymethods]
-    impl Maze {
-        pub fn move_from_current(&mut self, direction: &Direction) -> Coordinate {
-            if self.grid[self.current_location.0][self.current_location.1]
-                .walls
-                .contains(direction)
-            {
-                return self.current_location;
-            }
-            self.steps += 1;
-            match direction {
-                Direction::North => {
-                    self.current_location.1 = self.current_location.1.saturating_sub(1);
-                }
-                Direction::South => {
-                    self.current_location.1 = self.current_location.1 + 1;
-                }
-                Direction::East => {
-                    self.current_location.0 = self.current_location.0 + 1;
-                }
-                Direction::West => {
-                    self.current_location.0 = self.current_location.0.saturating_sub(1);
-                }
-            }
-            self.current_location
-        }
-
-        pub fn to_json(&self) -> PyResult<String> {
-            serde_json::to_string(self)
-                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
-        }
-
-        #[staticmethod]
-        pub fn from_json(json_str: &str) -> PyResult<Maze> {
-            serde_json::from_str(json_str)
-                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
-        }
-
-        pub fn available_paths(&self) -> HashSet<Direction> {
-            let walls = HashSet::from([
-                Direction::North,
-                Direction::South,
-                Direction::East,
-                Direction::West,
-            ]);
-            walls
-                .difference(&self.grid[self.current_location.0][self.current_location.1].walls)
-                .cloned()
-                .collect()
-        }
-    }
+   
 
     #[repr(usize)]
     #[pyclass(eq, eq_int)]

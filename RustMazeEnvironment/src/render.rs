@@ -1,21 +1,35 @@
 pub mod render {
-    use crate::maze::maze::{Cell, Direction, Maze};
-    use macroquad::color::{BLACK, DARKBLUE, GOLD, GREEN, LIGHTGRAY, MAGENTA, ORANGE, WHITE};
+    use std::collections::HashSet;
+    use crate::environment::environment::{Coordinate, Environment};
+    use crate::maze::maze::{Cell, Direction};
+    use macroquad::color::{BLACK, GOLD, GREEN, LIGHTGRAY, RED, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
 
-    pub async fn draw_maze(maze: &Maze, cell_size: f32) {
+    pub async fn draw_maze(
+        environment: &Environment,
+        cell_size: f32,
+        visited: &HashSet<Coordinate>,
+        step: usize,
+    ) {
         clear_background(BLACK);
         let offset = 10.0;
-        for row in &maze.grid {
+        for row in &environment.maze.grid {
             for cell in row {
                 // println!("Cell: {} {} {:?}", cell.x, cell.y, cell.walls);
-                draw_cell(cell, cell_size, offset, maze).await;
+                draw_cell(cell, cell_size, offset, environment, visited, step).await;
             }
         }
     }
 
-    pub async fn draw_cell(cell: &Cell, cell_size: f32, offset: f32, maze: &Maze) {
+    pub async fn draw_cell(
+        cell: &Cell,
+        cell_size: f32,
+        offset: f32,
+        environment: &Environment,
+        visited: &HashSet<Coordinate>,
+        step: usize,
+    ) {
         let x = cell.x as f32 * cell_size + offset;
         let y = cell.y as f32 * cell_size + offset;
         let coordinates = (cell.x, cell.y);
@@ -23,25 +37,23 @@ pub mod render {
 
         if cell.walls.len() == 4 {
             draw_rectangle(x, y, cell_size, cell_size, BLACK);
-        }
-        else {
+        } else {
             draw_rectangle(x, y, cell_size, cell_size, WHITE);
-
         }
 
-        if maze.visited.contains(&coordinates) {
+        if visited.contains(&coordinates) {
             draw_rectangle(x, y, cell_size, cell_size, LIGHTGRAY);
         }
 
-        if maze.path.contains(&coordinates) {
-            draw_rectangle(x, y, cell_size, cell_size, GOLD);
+        if environment.path_followed[step] == coordinates {
+            draw_rectangle(x, y, cell_size, cell_size, RED);
         }
 
-        if coordinates == maze.end {
+        if coordinates == environment.maze.end {
             draw_rectangle(x, y, cell_size, cell_size, GOLD); // Change RED to any color you prefer
         }
 
-        if coordinates == maze.start {
+        if coordinates == environment.maze.start {
             draw_rectangle(x, y, cell_size, cell_size, GREEN);
         }
         // Draw the cell walls based on its directions
@@ -73,8 +85,13 @@ pub mod render {
         }
     }
 
-    pub async fn render_maze(maze: &Maze, cell_size: f32) {
-        draw_maze(&maze, cell_size).await;
+    pub async fn render_maze(
+        environment: &Environment,
+        visited: &HashSet<Coordinate>,
+        cell_size: f32,
+        step: usize,
+    ) {
+        draw_maze(&environment, cell_size, visited, step).await;
         next_frame().await;
     }
 }
