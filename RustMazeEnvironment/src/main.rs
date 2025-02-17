@@ -22,10 +22,15 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
     let cell_size = 20.0;
-    let environment = read_environment_from_file("../solve1.json");
-
-    thread::sleep(Duration::from_millis(1000));
-    render_maze_loop(&environment, cell_size).await;
+    for i in 0..30 {
+        let filename = format!("../mazeLogs/solve{}.json", i);
+        let environment = read_environment_from_file(&filename);
+        
+        thread::sleep(Duration::from_millis(1000));
+        render_maze_loop(&environment, cell_size).await;
+        thread::sleep(Duration::from_millis(1000));
+    }
+   
 }
 
 async fn render_maze_loop(environment: &Environment, cell_size: f32) {
@@ -36,9 +41,7 @@ async fn render_maze_loop(environment: &Environment, cell_size: f32) {
         thread::sleep(Duration::from_millis(50));
 
     }
-    loop {
-        render_maze(&environment, &vistied, cell_size, environment.steps-1).await;
-    }
+    
 }
 
 fn read_environment_from_file(filename: &str) -> Environment {
