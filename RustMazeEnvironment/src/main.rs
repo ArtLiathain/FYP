@@ -7,29 +7,41 @@ use std::{
     time::Duration,
 };
 
+pub use constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use environment::environment::Environment;
+use macroquad::window::Conf;
 use maze::maze::{Direction, Maze};
 use maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze};
-use render::render::render_maze;
+use render::render::{render_maze, render_mazes};
 pub mod maze_gen;
 pub mod maze_solve;
 pub mod maze;
 pub mod render;
 pub mod environment;
+pub mod constants;
 
-#[macroquad::main("Maze Visualizer")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Maze Renderer".to_owned(),
+        window_width: WINDOW_WIDTH,  // Set the desired width
+        window_height: WINDOW_HEIGHT, // Set the desired height
+        fullscreen: false,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
     let cell_size = 20.0;
+    let mut environments: Vec<Environment> = vec![];
     for i in 0..30 {
         let filename = format!("../mazeLogs/solve{}.json", i);
         let environment = read_environment_from_file(&filename);
-        
-        thread::sleep(Duration::from_millis(1000));
-        render_maze_loop(&environment, cell_size).await;
-        thread::sleep(Duration::from_millis(1000));
+        environments.push(environment);
     }
+    render_mazes(environments, cell_size).await;
    
 }
 

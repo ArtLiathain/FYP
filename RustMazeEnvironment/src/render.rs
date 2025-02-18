@@ -1,23 +1,38 @@
 pub mod render {
-    use std::collections::HashSet;
+    use crate::constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
     use crate::environment::environment::{Coordinate, Environment};
     use crate::maze::maze::{Cell, Direction};
     use macroquad::color::{BLACK, GOLD, GREEN, LIGHTGRAY, RED, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
+    use std::cmp::min;
+    use std::collections::HashSet;
+    use std::thread::sleep;
+    use std::time::Duration;
+    use std::{cell, thread};
 
     pub async fn draw_maze(
         environment: &Environment,
         cell_size: f32,
         visited: &HashSet<Coordinate>,
         step: usize,
+        x_offset: f32,
+        y_offset: f32,
     ) {
-        clear_background(BLACK);
-        let offset = 10.0;
+        let base_offset = 10.0;
         for row in &environment.maze.grid {
             for cell in row {
-                // println!("Cell: {} {} {:?}", cell.x, cell.y, cell.walls);
-                draw_cell(cell, cell_size, offset, environment, visited, step).await;
+                draw_cell(
+                    cell,
+                    cell_size,
+                    base_offset,
+                    environment,
+                    visited,
+                    step,
+                    x_offset,
+                    y_offset,
+                )
+                .await;
             }
         }
     }
@@ -29,9 +44,11 @@ pub mod render {
         environment: &Environment,
         visited: &HashSet<Coordinate>,
         step: usize,
+        x_offset: f32,
+        y_offset: f32,
     ) {
-        let x = cell.x as f32 * cell_size + offset;
-        let y = cell.y as f32 * cell_size + offset;
+        let x = cell.x as f32 * cell_size + offset + x_offset;
+        let y = cell.y as f32 * cell_size + offset + y_offset;
         let coordinates = (cell.x, cell.y);
         let thickness = 1.0;
 
@@ -45,16 +62,16 @@ pub mod render {
             draw_rectangle(x, y, cell_size, cell_size, LIGHTGRAY);
         }
 
-        if environment.path_followed[step] == coordinates {
-            draw_rectangle(x, y, cell_size, cell_size, RED);
-        }
-
         if coordinates == environment.maze.end {
             draw_rectangle(x, y, cell_size, cell_size, GOLD); // Change RED to any color you prefer
         }
 
         if coordinates == environment.maze.start {
             draw_rectangle(x, y, cell_size, cell_size, GREEN);
+        }
+
+        if environment.path_followed[step] == coordinates {
+            draw_rectangle(x, y, cell_size, cell_size, RED);
         }
         // Draw the cell walls based on its directions
         if cell.walls.contains(&Direction::North) {
@@ -91,7 +108,89 @@ pub mod render {
         cell_size: f32,
         step: usize,
     ) {
-        draw_maze(&environment, cell_size, visited, step).await;
+        clear_background(BLACK);
+        draw_maze(&environment, cell_size, visited, step, 0.0, 0.0).await;
         next_frame().await;
+    }
+
+    fn calculate_number_of_potential_screens(
+        screen_size: (usize, usize),
+        maze_size: (usize, usize),
+    ) -> (usize, usize) {
+        (screen_size.1 / maze_size.1, screen_size.0 / maze_size.0)
+    }
+
+    fn make_visited_sets_array(amount: usize) -> Vec<HashSet<Coordinate>> {
+        vec![HashSet::new(); amount]
+    }
+
+    fn is_array_all_true(bools: &[bool]) -> bool {
+        bools.iter().all(|&b| b)
+    }
+
+    pub async fn render_mazes(environments: Vec<Environment>, cell_size: f32) {
+        let (rows, columns) = calculate_number_of_potential_screens(
+            (WINDOW_WIDTH as usize, WINDOW_HEIGHT as usize),
+            (
+                (environments[0].maze.width + 2) * cell_size as usize,
+                (environments[0].maze.height + 2) * cell_size as usize,
+            ),
+        );
+
+        for environments_index in (0..environments.len()).step_by(rows * columns) {
+            let amount_of_screens = min(rows * columns, environments.len() - environments_index);
+            println!(
+                "\n--- Rendering Batch ---\nEnvironments Index: {}\nAmount of Screens: {}\n",
+                environments_index, amount_of_screens
+            );
+
+            let mut visited_nodes = make_visited_sets_array(amount_of_screens);
+            let mut array_of_complete = vec![false; amount_of_screens];
+            let mut step = 0;
+
+            while !is_array_all_true(&array_of_complete) {
+                let mut screens_displayed = 0;
+
+                for row in 0..rows {
+                    for col in 0..columns {
+                        let idx = row * columns + col;
+                        if idx >= amount_of_screens {
+                            continue;
+                        }
+
+                        let env_index = environments_index + idx;
+                        if env_index >= environments.len() {
+                            continue;
+                        }
+
+                        let step_to_use = min(step, environments[env_index].path_followed.len() - 1);
+                        if step_to_use >= environments[env_index].steps - 1 {
+                            array_of_complete[idx] = true;
+                        }
+
+                        draw_maze(
+                            &environments[env_index],
+                            cell_size,
+                            &visited_nodes[idx],
+                            step_to_use,
+                            cell_size * (col * (environments[0].maze.width + 2) ) as f32,
+                            cell_size * (row * (environments[0].maze.height + 2)) as f32,
+                        )
+                        .await;
+                        visited_nodes[idx].insert(environments[env_index].path_followed[step_to_use]);
+                        screens_displayed += 1;
+                        if screens_displayed >= amount_of_screens {
+                            break;
+                        }
+                    }
+                    if screens_displayed >= amount_of_screens {
+                        break;
+                    }
+                }
+                next_frame().await;
+                sleep(Duration::from_millis(100));
+                step += 1;
+            }
+        }
     }
 }

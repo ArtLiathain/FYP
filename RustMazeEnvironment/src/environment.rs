@@ -124,7 +124,8 @@ pub mod environment {
             let mut is_done = false;
             let mut is_truncated = false;
             if self.current_location == self.maze.end {
-                reward += 100;
+                self.path_followed.push(self.current_location);
+                self.visited.insert(self.current_location);
                 is_done = true;
             }
             if self.visited.contains(&self.current_location) {

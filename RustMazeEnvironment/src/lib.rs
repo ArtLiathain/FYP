@@ -9,6 +9,8 @@ pub mod render;
 pub mod environment;
 pub mod maze_gen;
 pub mod maze_solve;
+pub mod constants;
+
 
 #[pyfunction]
 #[pyo3(signature=(width, height))]
