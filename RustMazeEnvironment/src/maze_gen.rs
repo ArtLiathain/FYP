@@ -4,7 +4,10 @@ pub mod maze_gen {
     use rand::{seq::IteratorRandom, Rng};
     use union_find::{QuickUnionUf, UnionBySize, UnionFind};
 
-    use crate::{environment::environment::Coordinate, maze::maze::{Direction, Maze}};
+    use crate::{
+        environment::environment::Coordinate,
+        maze::maze::{Direction, Maze},
+    };
     pub fn init_maze(width: usize, height: usize) -> Maze {
         let mut maze: Maze = Maze::new(width, height);
         maze.set_end((width / 2, height / 2));
@@ -20,16 +23,20 @@ pub mod maze_gen {
         let mut visited_nodes: HashSet<Coordinate> = HashSet::new();
         let end_coordinate = (maze.width / 2, maze.height / 2);
 
-        let mut current = unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
+        let mut current =
+            unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
         while !unvisited_nodes.is_empty() {
             let mut new_path: Vec<(Coordinate, Direction)> = Vec::new();
             let mut new_coordinates: Coordinate;
             loop {
                 let direction = Direction::random();
-                new_coordinates = maze.move_from(&direction, &current);
-                if !Maze::in_bounds(&maze, new_coordinates) {
-                    continue;
-                }
+                let new_coordinates = match maze.move_from(&direction, &current) {
+                    Ok(coordinates) => coordinates,
+                    Err(e) => {
+                        continue;
+                    }
+                };
+
                 new_path.push((current, direction));
 
                 let match_index = new_path
@@ -60,10 +67,12 @@ pub mod maze_gen {
         let mut path = Vec::new();
         loop {
             let direction = Direction::random();
-            let new_coordinates = maze.move_from(&direction, &current);
-            if !Maze::in_bounds(&maze, new_coordinates) || new_coordinates == current {
-                continue;
-            }
+            let new_coordinates = match maze.move_from(&direction, &current) {
+                Ok(coordinates) => coordinates,
+                Err(e) => {
+                    continue;
+                }
+            };
             path.push((current, direction));
 
             break;
@@ -98,7 +107,12 @@ pub mod maze_gen {
                 Some(edge) => edge,
                 None => break,
             };
-            let new_cell = maze.move_from(&random_edge.1, &random_edge.0);
+            let new_cell = match maze.move_from(&random_edge.1, &random_edge.0) {
+                Ok(coordinates) => coordinates,
+                Err(e) => {
+                    continue;
+                }
+            };
             let cell_union_set = unique_coordinate_index(random_edge.0, maze.width);
             let new_cell_union_set = unique_coordinate_index(new_cell, maze.width);
             if union_find.find(cell_union_set) == union_find.find(new_cell_union_set) {

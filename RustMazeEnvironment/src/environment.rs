@@ -2,7 +2,7 @@ pub mod environment {
     use crate::maze::maze::{Direction, Maze};
     use pyo3::{pyclass, pymethods, PyErr, PyResult};
     use serde::{Deserialize, Serialize};
-    use std::{collections::HashSet, path::absolute};
+    use std::collections::HashSet;
     pub type Coordinate = (usize, usize);
     use crate::maze_gen::maze_gen::init_maze;
 

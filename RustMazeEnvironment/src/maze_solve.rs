@@ -37,10 +37,12 @@ pub mod maze_solve {
                 Direction::East,
                 Direction::West,
             ] {
-                let neighbor = maze.move_from(direction, &current.0);
+                let neighbor = match maze.move_from(direction, &current.0) {
+                    Ok(coordinates) => {coordinates},
+                    Err(e) => {continue;}
+                };
 
-                if maze.in_bounds(neighbor)                // Check bounds
-                    && !visited.contains(&neighbor)        // Ensure not visited
+                if !visited.contains(&neighbor)        // Ensure not visited
                     && !maze.grid[current.0.0][current.0.1]
                         .walls
                         .contains(direction)
@@ -91,14 +93,15 @@ pub mod maze_solve {
                 Direction::East,
                 Direction::West,
             ] {
-                let neighbor = maze.move_from(direction, &current.0);
+                let neighbor = match maze.move_from(direction, &current.0) {
+                    Ok(coordinates) => {coordinates},
+                    Err(e) => {continue;}
+                };
 
-                if maze.in_bounds(neighbor)                // Check bounds
-                    && !visited.contains(&neighbor)        // Ensure not visited
+                if !visited.contains(&neighbor)        // Ensure not visited
                     && !maze.grid[current.0.0][current.0.1]
                         .walls
                         .contains(direction)
-                // Check if there's no wall in the current direction
                 {
                     stack.push((neighbor, step));
                 }

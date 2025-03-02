@@ -1,11 +1,19 @@
 pub mod maze {
-    use pyo3::{ pyclass, pymethods};
+    use pyo3::{pyclass, pymethods};
     use rand::Rng;
-    use serde::{Deserialize, Serialize};
-    use std::{collections::HashSet, fmt};
+    use serde::{de::value::MapDeserializer, Deserialize, Serialize};
+    use std::{
+        collections::{HashMap, HashSet}, fmt, usize
+    };
 
     use crate::environment::environment::Coordinate;
 
+
+    #[derive(Debug, Clone)]
+    pub enum MoveError {
+        OutOfBounds,
+        InvalidDirection,
+    }
 
     #[pyclass]
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,8 +67,8 @@ pub mod maze {
         pub fn set_end(&mut self, cell: Coordinate) {
             self.end = cell;
         }
-        pub fn in_bounds(&self, cell: Coordinate) -> bool {
-            cell.0 < self.width && cell.1 < self.height
+        pub fn in_bounds(&self, cell: (i32, i32)) -> bool {
+            cell.0 < self.width as i32 && cell.1 < self.height as i32 && cell.0 > -1 && cell.1 > -1
         }
 
         pub fn get_starting_point(&self) -> Coordinate {
@@ -80,33 +88,45 @@ pub mod maze {
                 cell.walls.remove(wall);
             }
         }
-        
 
         pub fn move_from(
             &self,
             direction: &Direction,
             coordinates: &Coordinate,
-        ) -> Coordinate {
-            match direction {
-                Direction::North => (coordinates.0, coordinates.1.saturating_sub(1)),
-                Direction::South => (coordinates.0, coordinates.1 + 1),
-                Direction::East => (coordinates.0 + 1, coordinates.1),
-                Direction::West => (coordinates.0.saturating_sub(1), coordinates.1),
+        ) -> Result<Coordinate, MoveError> {
+            let (x,  y)  = (coordinates.0 as i32, coordinates.1 as i32);
+
+            let new_coordinates = match direction {
+                Direction::North => {
+                    (x, y - 1)
+                }
+                Direction::South => {
+                    (x, y + 1)
+                }
+                Direction::East => {
+                    (x + 1, y)
+                }
+                Direction::West => {
+                    (x - 1, y)
+                }
+            };
+            if !self.in_bounds(new_coordinates) {
+               return Err(MoveError::OutOfBounds);
             }
+            Ok((new_coordinates.0 as usize, new_coordinates.1 as usize))
         }
 
         pub fn break_walls_for_path(&mut self, path: Vec<(Coordinate, Direction)>) {
-            for i in 0..path.len(){
-                self.break_wall_for_path( &path, i);
+            for i in 0..path.len() {
+                self.break_wall_for_path(&path, i);
             }
         }
-        pub fn break_wall_for_path(
-            &mut self,
-            path: &Vec<(Coordinate, Direction)>,
-            index: usize,
-        ) {
+        pub fn break_wall_for_path(&mut self, path: &Vec<(Coordinate, Direction)>, index: usize) {
             let current_cell = path[index].0;
-            let next_cell = self.move_from(&path[index].1, &path[index].0);
+            let next_cell = match self.move_from(&path[index].1, &path[index].0) {
+                Ok(coordinates) => {coordinates},
+                Err(_) => {return;}
+            };
             let direction = path[index].1;
             self.grid[next_cell.0][next_cell.1]
                 .walls
@@ -115,9 +135,34 @@ pub mod maze {
                 .walls
                 .remove(&direction);
         }
-    }   
 
-   
+        fn follow_path(maze: &Maze, coordinates: &Coordinate, direction: &Direction) -> usize {
+            let mut steps = 0;
+            let mut current = coordinates;
+            loop {}
+        }
+
+        pub fn convert_to_weighted_graph(
+            maze: &Maze,
+        ) -> HashMap<Coordinate, (Coordinate, Direction, usize)> {
+            let mut decision_nodes: HashMap<Coordinate, (Coordinate, Direction, usize)> =
+                HashMap::new();
+            for row in 0..maze.height {
+                for column in 0..maze.height {
+                    let cell = &maze.grid[row][column];
+                    let walls: Vec<&Direction> = cell.walls.iter().collect();
+                    if walls.len() <= 1 {
+                        decision_nodes.insert((cell.x, cell.y), ((0, 0), Direction::North, 0));
+                    }
+                    if walls.len() == 2 && *walls[0] != walls[1].opposite_direction() {
+                        decision_nodes.insert((cell.x, cell.y), ((0, 0), Direction::North, 0));
+                    }
+                }
+            }
+
+            HashMap::new()
+        }
+    }
 
     #[repr(usize)]
     #[pyclass(eq, eq_int)]
