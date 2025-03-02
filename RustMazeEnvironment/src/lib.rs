@@ -1,5 +1,3 @@
-use std::{collections::HashSet, os::unix::fs::DirEntryExt};
-
 use environment::environment::{Action, ActionResult, Environment, Info};
 use maze::maze::{Cell, Direction, Maze};
 use maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze};

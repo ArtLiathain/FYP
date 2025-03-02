@@ -3,16 +3,16 @@ use std::{
     env,
     fs::File,
     io::Read,
-    thread::{self, sleep},
+    thread::{self},
     time::Duration,
 };
 
 pub use constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use environment::environment::Environment;
-use macroquad::window::Conf;
+use macroquad::window::{next_frame, Conf};
 use maze::maze::{Direction, Maze};
-use maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze};
-use render::render::{render_maze, render_mazes};
+use maze_gen::maze_gen::{init_maze, random_kruzkals_maze, random_wilson_maze};
+use render::render::{draw_maze, render_maze, render_mazes};
 pub mod maze_gen;
 pub mod maze_solve;
 pub mod maze;
@@ -35,13 +35,28 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
     let cell_size = 20.0;
-    let mut environments: Vec<Environment> = vec![];
-    for i in 0..30 {
-        let filename = format!("../mazeLogs/solve{}.json", i);
-        let environment = read_environment_from_file(&filename);
-        environments.push(environment);
-    }
-    render_mazes(environments, cell_size).await;
+    let mut environment = Environment::new(4, 4);
+    let walls_to_break = random_wilson_maze(&mut environment.maze);
+
+    println!("walls {:?}", walls_to_break);
+
+    environment.maze.break_walls_for_path(walls_to_break);
+    println!("{:?}", environment.maze.convert_to_weighted_graph());
+
+    environment.path_followed.push((0,0));
+
+    draw_maze(&environment, cell_size, &HashSet::new(), 0, 0.0, 0.0).await;
+    next_frame().await;
+    thread::sleep(Duration::from_millis(100000));
+    
+
+    // let mut environments: Vec<Environment> = vec![];
+    // for i in 0..30 {
+    //     let filename = format!("../mazeLogs/solve{}.json", i);
+    //     let environment = read_environment_from_file(&filename);
+    //     environments.push(environment);
+    // }
+    // render_mazes(environments, cell_size).await;
    
 }
 

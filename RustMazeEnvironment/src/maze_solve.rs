@@ -39,7 +39,7 @@ pub mod maze_solve {
             ] {
                 let neighbor = match maze.move_from(direction, &current.0) {
                     Ok(coordinates) => {coordinates},
-                    Err(e) => {continue;}
+                    Err(_) => {continue;}
                 };
 
                 if !visited.contains(&neighbor)        // Ensure not visited
@@ -95,7 +95,7 @@ pub mod maze_solve {
             ] {
                 let neighbor = match maze.move_from(direction, &current.0) {
                     Ok(coordinates) => {coordinates},
-                    Err(e) => {continue;}
+                    Err(_) => {continue;}
                 };
 
                 if !visited.contains(&neighbor)        // Ensure not visited

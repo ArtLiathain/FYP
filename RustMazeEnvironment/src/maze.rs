@@ -1,7 +1,7 @@
 pub mod maze {
     use pyo3::{pyclass, pymethods};
     use rand::Rng;
-    use serde::{de::value::MapDeserializer, Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
     use std::{
         collections::{HashMap, HashSet}, fmt, usize
     };
@@ -89,13 +89,23 @@ pub mod maze {
             }
         }
 
+        pub fn move_from_with_walls(&self,
+            direction: &Direction,
+            coordinates: &Coordinate) -> Result<Coordinate, MoveError> {
+            if self.grid[coordinates.0][coordinates.1].walls.contains(direction) {
+                return Err(MoveError::OutOfBounds);
+            }
+            self.move_from(direction, coordinates)
+            
+        }
+
         pub fn move_from(
             &self,
             direction: &Direction,
             coordinates: &Coordinate,
         ) -> Result<Coordinate, MoveError> {
             let (x,  y)  = (coordinates.0 as i32, coordinates.1 as i32);
-
+            
             let new_coordinates = match direction {
                 Direction::North => {
                     (x, y - 1)
@@ -111,6 +121,7 @@ pub mod maze {
                 }
             };
             if !self.in_bounds(new_coordinates) {
+                println!("OUT OF BOUNDS {}, {}", new_coordinates.0, new_coordinates.1);
                return Err(MoveError::OutOfBounds);
             }
             Ok((new_coordinates.0 as usize, new_coordinates.1 as usize))
@@ -136,31 +147,53 @@ pub mod maze {
                 .remove(&direction);
         }
 
-        fn follow_path(maze: &Maze, coordinates: &Coordinate, direction: &Direction) -> usize {
+        fn follow_path(&self, coordinates: &Coordinate, direction: &Direction, decision_nodes: &HashSet<Coordinate>) -> usize {
             let mut steps = 0;
-            let mut current = coordinates;
-            loop {}
+            let mut current = *coordinates;
+            loop {
+                current = match self.move_from(direction, &current) {
+                    Ok(coordinates) => {coordinates},
+                    Err(_) => {return steps}
+                };
+                steps+=1;
+                if decision_nodes.contains(&current) {
+                    break;
+                }
+            }
+            steps
         }
 
         pub fn convert_to_weighted_graph(
-            maze: &Maze,
-        ) -> HashMap<Coordinate, (Coordinate, Direction, usize)> {
-            let mut decision_nodes: HashMap<Coordinate, (Coordinate, Direction, usize)> =
+            &self,
+        ) -> HashMap<Coordinate, HashMap<Direction, usize>> {
+            let mut decision_nodes: HashMap<Coordinate, HashMap<Direction, usize>> =
                 HashMap::new();
-            for row in 0..maze.height {
-                for column in 0..maze.height {
-                    let cell = &maze.grid[row][column];
+            let mut decision_set: HashSet<Coordinate> = HashSet::new();
+            for row in 0..self.height {
+                for column in 0..self.width {
+                    let cell = &self.grid[row][column];
                     let walls: Vec<&Direction> = cell.walls.iter().collect();
                     if walls.len() <= 1 {
-                        decision_nodes.insert((cell.x, cell.y), ((0, 0), Direction::North, 0));
+                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
+                        decision_set.insert((cell.x, cell.y));
                     }
                     if walls.len() == 2 && *walls[0] != walls[1].opposite_direction() {
-                        decision_nodes.insert((cell.x, cell.y), ((0, 0), Direction::North, 0));
+                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
+                        decision_set.insert((cell.x, cell.y));
                     }
                 }
             }
+            let directions = vec!(Direction::North,Direction::South,Direction::East,Direction::West);
+            for (coordinate, inner_map) in decision_nodes.iter_mut() {
+                for direction in &directions {
+                    let steps = self.follow_path(&coordinate, &direction, &decision_set);
+                    if steps > 0 {
+                        inner_map.insert(*direction, steps);
+                    }
+                }
+            }          
 
-            HashMap::new()
+            decision_nodes
         }
     }
 

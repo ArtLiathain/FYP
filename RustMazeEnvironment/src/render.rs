@@ -9,7 +9,7 @@ pub mod render {
     use std::collections::HashSet;
     use std::thread::sleep;
     use std::time::Duration;
-    use std::{cell, thread};
+    
 
     pub async fn draw_maze(
         environment: &Environment,

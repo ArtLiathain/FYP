@@ -27,16 +27,14 @@ pub mod maze_gen {
             unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
         while !unvisited_nodes.is_empty() {
             let mut new_path: Vec<(Coordinate, Direction)> = Vec::new();
-            let mut new_coordinates: Coordinate;
             loop {
                 let direction = Direction::random();
                 let new_coordinates = match maze.move_from(&direction, &current) {
                     Ok(coordinates) => coordinates,
-                    Err(e) => {
+                    Err(_) => {
                         continue;
                     }
                 };
-
                 new_path.push((current, direction));
 
                 let match_index = new_path
@@ -67,9 +65,9 @@ pub mod maze_gen {
         let mut path = Vec::new();
         loop {
             let direction = Direction::random();
-            let new_coordinates = match maze.move_from(&direction, &current) {
+            current = match maze.move_from(&direction, &current) {
                 Ok(coordinates) => coordinates,
-                Err(e) => {
+                Err(_) => {
                     continue;
                 }
             };
@@ -109,7 +107,7 @@ pub mod maze_gen {
             };
             let new_cell = match maze.move_from(&random_edge.1, &random_edge.0) {
                 Ok(coordinates) => coordinates,
-                Err(e) => {
+                Err(_) => {
                     continue;
                 }
             };
