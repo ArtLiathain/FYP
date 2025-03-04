@@ -1,0 +1,14 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+macroquad = "0.4.13"
+lib = { path = "../lib" }
+
+
+
+[[bin]]
+name = "cli"
+path = "src/main.rs"
