@@ -1,15 +1,3 @@
-use environment::environment::{Action, ActionResult, Environment, Info};
-use maze::maze::{Cell, Direction, Maze};
-use maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze};
-use pyo3::prelude::*;
-pub mod maze;
-pub mod render;
-pub mod environment;
-pub mod maze_gen;
-pub mod maze_solve;
-pub mod constants;
-
-
 #[pyfunction]
 #[pyo3(signature=(width, height))]
 fn init_environment_python(width: usize, height : usize) -> PyResult<Environment> {
@@ -40,7 +28,7 @@ fn create_kruzkals_maze(environment: &mut Environment) -> PyResult<()> {
 }
 
 #[pymodule]
-fn simulation(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn setup_python_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(init_environment_python, m)?)?;
     m.add_function(wrap_pyfunction!(create_wilsons_maze, m)?)?;
     m.add_function(wrap_pyfunction!(create_action, m)?)?;

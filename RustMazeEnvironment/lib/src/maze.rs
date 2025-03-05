@@ -121,7 +121,6 @@ pub mod maze {
                 }
             };
             if !self.in_bounds(new_coordinates) {
-                println!("OUT OF BOUNDS {}, {}", new_coordinates.0, new_coordinates.1);
                return Err(MoveError::OutOfBounds);
             }
             Ok((new_coordinates.0 as usize, new_coordinates.1 as usize))
@@ -151,7 +150,7 @@ pub mod maze {
             let mut steps = 0;
             let mut current = *coordinates;
             loop {
-                current = match self.move_from(direction, &current) {
+                current = match self.move_from_with_walls(direction, &current) {
                     Ok(coordinates) => {coordinates},
                     Err(_) => {return steps}
                 };

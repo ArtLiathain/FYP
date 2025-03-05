@@ -23,9 +23,9 @@ pub mod maze_gen {
         let mut visited_nodes: HashSet<Coordinate> = HashSet::new();
         let end_coordinate = (maze.width / 2, maze.height / 2);
 
-        let mut current =
-            unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
         while !unvisited_nodes.is_empty() {
+            let mut current =
+                unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
             let mut new_path: Vec<(Coordinate, Direction)> = Vec::new();
             loop {
                 let direction = Direction::random();
@@ -52,30 +52,12 @@ pub mod maze_gen {
                 }
                 current = new_coordinates;
             }
-            walls_to_break.extend(new_path.clone());
-            for (coords, _) in new_path {
-                visited_nodes.insert(coords);
-                unvisited_nodes.retain(|&coord| coord != coords);
+            for (coords, _) in new_path.iter() {
+                visited_nodes.insert(*coords);
+                unvisited_nodes.retain(|&coord| coord != *coords);
             }
-            if !unvisited_nodes.is_empty() {
-                current =
-                    unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
-            }
+            walls_to_break.extend(new_path);
         }
-        let mut path = Vec::new();
-        loop {
-            let direction = Direction::random();
-            current = match maze.move_from(&direction, &current) {
-                Ok(coordinates) => coordinates,
-                Err(_) => {
-                    continue;
-                }
-            };
-            path.push((current, direction));
-
-            break;
-        }
-        walls_to_break.extend(path.clone());
 
         walls_to_break
     }
