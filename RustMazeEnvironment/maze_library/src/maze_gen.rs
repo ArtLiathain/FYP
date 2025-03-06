@@ -106,4 +106,32 @@ pub mod maze_gen {
 
         walls_to_break
     }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::{maze, test_utils::all_tiles_reachable::all_tiles_reachable};
+
+        use super::*;
+
+        #[test]
+        fn test_kruskals() {
+            for _ in 0..10 {
+                let mut maze = Maze::new(20, 20);
+                let walls_to_break = random_kruzkals_maze(&mut maze);
+                maze.break_walls_for_path(walls_to_break);
+
+                assert!(all_tiles_reachable(&maze));
+            }
+        }
+        #[test]
+        fn test_wilsons() {
+            for _ in 0..10 {
+                let mut maze = Maze::new(20, 20);
+                let walls_to_break = random_wilson_maze(&mut maze);
+                maze.break_walls_for_path(walls_to_break);
+
+                assert!(all_tiles_reachable(&maze));
+            }
+        }
+    }
 }

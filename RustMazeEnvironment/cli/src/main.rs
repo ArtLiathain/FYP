@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-
+pub mod solving_algorithms;
 use maze_library::{constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, maze::maze::{Direction, Maze}, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}, render::{self, render::{draw_maze, render_maze}}};
 use macroquad::window::{next_frame, Conf};
 
@@ -26,7 +26,7 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
     let cell_size = 20.0;
-    let mut environment = Environment::new(40, 40);
+    let mut environment = Environment::new(15, 15);
     let walls_to_break = random_wilson_maze(&mut environment.maze);
 
     environment.maze.break_walls_for_path(walls_to_break);
