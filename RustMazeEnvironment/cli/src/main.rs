@@ -7,18 +7,9 @@ use std::{
     time::Duration,
 };
 
-pub use constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
-use environment::environment::Environment;
+
+use maze_library::{constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, maze::maze::{Direction, Maze}, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}, render::{self, render::{draw_maze, render_maze}}};
 use macroquad::window::{next_frame, Conf};
-use maze::maze::{Direction, Maze};
-use maze_gen::maze_gen::{init_maze, random_kruzkals_maze, random_wilson_maze};
-use render::render::{draw_maze, render_maze, render_mazes};
-pub mod maze_gen;
-pub mod maze_solve;
-pub mod maze;
-pub mod render;
-pub mod environment;
-pub mod constants;
 
 fn window_conf() -> Conf {
     Conf {
@@ -35,7 +26,7 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
     let cell_size = 20.0;
-    let mut environment = Environment::new(4, 4);
+    let mut environment = Environment::new(20, 20);
     let walls_to_break = random_wilson_maze(&mut environment.maze);
 
 

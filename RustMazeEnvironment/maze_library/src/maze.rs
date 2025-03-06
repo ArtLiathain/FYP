@@ -15,26 +15,19 @@ pub mod maze {
         InvalidDirection,
     }
 
-    #[pyclass]
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Cell {
-        #[pyo3(get, set)]
         pub x: usize,
-        #[pyo3(get, set)]
         pub y: usize,
-        #[pyo3(get)]
         pub walls: HashSet<Direction>,
     }
 
-    #[pyclass]
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Maze {
         pub width: usize,
         pub height: usize,
         pub grid: Vec<Vec<Cell>>,
-        #[pyo3(get)]
         pub start: Coordinate,
-        #[pyo3(get)]
         pub end: Coordinate,
     }
 
@@ -235,7 +228,7 @@ pub mod maze {
 
     impl Direction {
         pub fn random() -> Direction {
-            match rand::thread_rng().gen_range(0..4) {
+            match rand::rng().random_range(0..4) {
                 0 => Direction::North,
                 1 => Direction::South,
                 2 => Direction::East,
