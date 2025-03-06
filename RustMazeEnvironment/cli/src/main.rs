@@ -26,9 +26,8 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
     let cell_size = 20.0;
-    let mut environment = Environment::new(20, 20);
+    let mut environment = Environment::new(40, 40);
     let walls_to_break = random_wilson_maze(&mut environment.maze);
-
 
     environment.maze.break_walls_for_path(walls_to_break);
     println!("{:?}", environment.maze.convert_to_weighted_graph());

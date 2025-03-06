@@ -1,12 +1,11 @@
 pub mod environment {
     use crate::maze::maze::{Direction, Maze};
-    use pyo3::pyclass;
     use serde::{Deserialize, Serialize};
     use std::collections::HashSet;
     pub type Coordinate = (usize, usize);
     use crate::maze_gen::maze_gen::init_maze;
 
-    #[cfg_attr(feature = "python", pyclass)]
+    #[cfg_attr(feature = "python", pyo3::pyclass)]
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Environment {
         pub path_followed: Vec<Coordinate>,

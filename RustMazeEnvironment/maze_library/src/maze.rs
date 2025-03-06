@@ -1,5 +1,4 @@
 pub mod maze {
-    use pyo3::{pyclass, pymethods};
     use rand::Rng;
     use serde::{Deserialize, Serialize};
     use std::{
@@ -190,7 +189,7 @@ pub mod maze {
     }
 
     #[repr(usize)]
-    #[pyclass(eq, eq_int)]
+    #[cfg_attr(feature = "python", pyo3::pyclass(eq, eq_int))]
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub enum Direction {
         North = 0,
@@ -210,7 +209,7 @@ pub mod maze {
             write!(f, "{}", direction_str)
         }
     }
-    #[pymethods]
+    #[cfg_attr(feature = "python", pyo3::pymethods)]
     impl Direction {
         pub fn __hash__(&self) -> u64 {
             *self as u64

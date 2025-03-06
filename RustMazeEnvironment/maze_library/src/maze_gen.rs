@@ -25,7 +25,7 @@ pub mod maze_gen {
 
         while !unvisited_nodes.is_empty() {
             let mut current =
-                unvisited_nodes.remove(rand::thread_rng().gen_range(0..unvisited_nodes.len()));
+                unvisited_nodes.remove(rand::rng().random_range(0..unvisited_nodes.len()));
             let mut new_path: Vec<(Coordinate, Direction)> = Vec::new();
             loop {
                 let direction = Direction::random();
@@ -82,7 +82,7 @@ pub mod maze_gen {
             }
         }
         while !edge_set.is_empty() {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let random_edge = match edge_set.iter().choose(&mut rng).cloned() {
                 Some(edge) => edge,
                 None => break,

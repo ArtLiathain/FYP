@@ -12,7 +12,6 @@ union-find = "0.4.3"
 pyo3 = { version = "0.23.5", optional = true }
 
 [features]
-default = ["python"]  # Python is enabled by default
 python = ["pyo3"]    # Python feature depends on pyo3
 
 [lib]
