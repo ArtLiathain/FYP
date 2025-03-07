@@ -4,4 +4,4 @@
 /lib
 **/lib64
 **/mazeLogs/**
-**/__pycache__
+**/__pycache__/
