@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::maze::maze::{Direction, Maze};
+use crate::{direction::Direction, maze::maze::Maze};
 
 pub fn all_tiles_reachable(maze: &Maze) -> bool {
     let mut stack = vec![maze.get_end_point()]; // Stack for DFS

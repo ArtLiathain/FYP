@@ -1,7 +1,7 @@
 pub mod python_bindings {
     use pyo3::{pyfunction, pymodule, types::{PyModule, PyModuleMethods}, wrap_pyfunction, Bound, PyResult};
 
-    use crate::{environment::environment::Environment, maze::maze::Direction, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}, python_bindings::environment_bindings::{Action, ActionResult, Info}};
+    use crate::{direction::Direction, environment::environment::Environment, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}, python_bindings::environment_bindings::{Action, ActionResult, Info}};
 
     #[pyfunction]
     #[pyo3(signature=(width, height))]

@@ -3,6 +3,7 @@ pub mod render;
 pub mod environment;
 pub mod maze_gen;
 pub mod constants;
+pub mod direction;
 
 
 #[cfg(feature = "python")]

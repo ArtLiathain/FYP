@@ -1,5 +1,5 @@
 pub mod environment {
-    use crate::maze::maze::{Direction, Maze};
+    use crate::{direction::Direction, maze::maze::Maze};
     use serde::{Deserialize, Serialize};
     use std::collections::HashSet;
     pub type Coordinate = (usize, usize);

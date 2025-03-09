@@ -1,7 +1,8 @@
 pub mod render {
     use crate::constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
+    use crate::direction::Direction;
     use crate::environment::environment::{Coordinate, Environment};
-    use crate::maze::maze::{Cell, Direction};
+    use crate::maze::maze::Cell;
     use macroquad::color::{BLACK, GOLD, GREEN, LIGHTGRAY, RED, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
@@ -129,6 +130,7 @@ pub mod render {
     }
 
     pub async fn render_mazes(environments: Vec<Environment>, cell_size: f32) {
+        println!("RUNNNING MAZES {}", environments.len());
         let (rows, columns) = calculate_number_of_potential_screens(
             (WINDOW_WIDTH as usize, WINDOW_HEIGHT as usize),
             (

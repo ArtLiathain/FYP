@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
-use crate::{environment::environment::{Coordinate, Environment}, maze::maze::Direction};
+use crate::{direction::Direction, environment::environment::{Coordinate, Environment}};
 
 #[pyclass]
 #[derive(Debug, Clone)]

@@ -5,8 +5,7 @@ pub mod maze_gen {
     use union_find::{QuickUnionUf, UnionBySize, UnionFind};
 
     use crate::{
-        environment::environment::Coordinate,
-        maze::maze::{Direction, Maze},
+        direction::Direction, environment::environment::Coordinate, maze::maze::Maze
     };
     pub fn init_maze(width: usize, height: usize) -> Maze {
         let mut maze: Maze = Maze::new(width, height);
@@ -15,7 +14,7 @@ pub mod maze_gen {
         maze
     }
 
-    pub fn random_wilson_maze(maze: &mut Maze) -> Vec<(Coordinate, Direction)> {
+    pub fn random_wilson_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
         let mut unvisited_nodes: Vec<Coordinate> = (0..maze.width)
             .flat_map(|x| (0..maze.height).map(move |y| (x, y)))
             .collect();
@@ -66,7 +65,7 @@ pub mod maze_gen {
         coord.1 * width + coord.0
     }
 
-    pub fn random_kruzkals_maze(maze: &mut Maze) -> Vec<(Coordinate, Direction)> {
+    pub fn random_kruzkals_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
         let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
         let mut edge_set: HashSet<(Coordinate, Direction)> = HashSet::new();
         let mut union_find = QuickUnionUf::<UnionBySize>::new(maze.width * maze.height);
