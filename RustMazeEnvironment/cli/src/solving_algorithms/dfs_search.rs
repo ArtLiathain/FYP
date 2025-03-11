@@ -1,8 +1,7 @@
 pub mod maze_solve {
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
-    use maze_library::{direction::Direction, environment::environment::Environment};
-
+    use maze_library::environment::environment::Environment;
 
     pub fn solve_maze_dfs(env: &mut Environment) {
         let mut stack = vec![(env.maze.get_starting_point(), 0)]; // Stack for DFS
@@ -10,6 +9,7 @@ pub mod maze_solve {
         let mut path = vec![]; // Final path to the goal
         let mut step = 0;
         let end = env.maze.get_end_point();
+        let weighted_graph = env.maze.convert_to_weighted_graph();
         while let Some(current) = stack.pop() {
             if visited.contains(&current.0) {
                 continue;
@@ -34,26 +34,19 @@ pub mod maze_solve {
                 return;
             }
             // Explore neighbors
-            for direction in &[
-                Direction::North,
-                Direction::South,
-                Direction::East,
-                Direction::West,
-            ] {
-                let neighbor = match env.maze.move_from(direction, &current.0) {
-                    Ok(coordinates) => {coordinates},
-                    Err(_) => {continue;}
+            for (direction, steps) in weighted_graph.get(&current.0).unwrap_or(&HashMap::new()) {
+                let neighbor = match env.maze.move_from(direction, &current.0, Some(*steps)) {
+                    Ok(coordinates) => coordinates,
+                    Err(_) => {
+                        continue;
+                    }
                 };
 
-                if !visited.contains(&neighbor)        // Ensure not visited
-                    && !env.maze.grid[current.0.0][current.0.1]
-                        .walls
-                        .contains(direction)
-                {
+                if !visited.contains(&neighbor) {
                     stack.push((neighbor, step));
                 }
             }
         }
-    
+        println!("NO PATH FOUND");
     }
 }

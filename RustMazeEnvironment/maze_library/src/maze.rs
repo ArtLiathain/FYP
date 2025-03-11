@@ -86,7 +86,7 @@ pub mod maze {
             if self.grid[coordinates.0][coordinates.1].walls.contains(direction) {
                 return Err(MoveError::OutOfBounds);
             }
-            self.move_from(direction, coordinates)
+            self.move_from(direction, coordinates, None)
             
         }
 
@@ -94,21 +94,22 @@ pub mod maze {
             &self,
             direction: &Direction,
             coordinates: &Coordinate,
+            steps : Option<usize>
         ) -> Result<Coordinate, MoveError> {
             let (x,  y)  = (coordinates.0 as i32, coordinates.1 as i32);
-            
+            let steps_to_take = steps.unwrap_or(1) as i32;
             let new_coordinates = match direction {
                 Direction::North => {
-                    (x, y - 1)
+                    (x, y - steps_to_take)
                 }
                 Direction::South => {
-                    (x, y + 1)
+                    (x, y + steps_to_take)
                 }
                 Direction::East => {
-                    (x + 1, y)
+                    (x + steps_to_take, y)
                 }
                 Direction::West => {
-                    (x - 1, y)
+                    (x - steps_to_take, y)
                 }
             };
             if !self.in_bounds(new_coordinates) {
@@ -124,7 +125,7 @@ pub mod maze {
         }
         pub fn break_wall_for_path(&mut self, path: &Vec<(Coordinate, Direction)>, index: usize) {
             let current_cell = path[index].0;
-            let next_cell = match self.move_from(&path[index].1, &path[index].0) {
+            let next_cell = match self.move_from(&path[index].1, &path[index].0, None) {
                 Ok(coordinates) => {coordinates},
                 Err(_) => {return;}
             };
@@ -159,6 +160,12 @@ pub mod maze {
             let mut decision_nodes: HashMap<Coordinate, HashMap<Direction, usize>> =
                 HashMap::new();
             let mut decision_set: HashSet<Coordinate> = HashSet::new();
+
+            decision_nodes.insert(self.start, HashMap::new());
+            decision_nodes.insert(self.end, HashMap::new());
+            decision_set.insert(self.start);
+            decision_set.insert(self.end);
+
             for row in 0..self.height {
                 for column in 0..self.width {
                     let cell = &self.grid[row][column];
