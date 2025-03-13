@@ -40,7 +40,7 @@ pub fn generate_environment_list(
 }
 
 pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -> Environment {
-    let mut walls = vec![];
+    let mut walls;
     let mut env = Environment::new(width, height);
     match algorithm {
         MazeType::Wilsons => walls = random_wilson_maze(&env.maze),

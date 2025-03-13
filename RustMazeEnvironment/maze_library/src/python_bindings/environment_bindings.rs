@@ -51,7 +51,7 @@ fn calculate_manhattan_distance(pos1: Coordinate, pos2: Coordinate) -> usize {
 impl Environment {
     pub fn take_action(&mut self, action: Action) -> ActionResult {
         let _ = &self.move_from_current(&action.direction);
-        let mut reward = 0;
+        let mut reward = -1;
         let mut is_done = false;
         let mut is_truncated = false;
         if self.current_location == self.maze.end {
@@ -60,7 +60,7 @@ impl Environment {
             is_done = true;
         }
         if self.visited.contains(&self.current_location) {
-            reward -= 1;
+            reward -= 5;
         }
         if self.steps > self.maze.width * self.maze.height * 3 {
             is_truncated = true;
