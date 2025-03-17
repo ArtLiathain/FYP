@@ -170,7 +170,7 @@ pub mod maze {
                 for column in 0..self.width {
                     let cell = &self.grid[row][column];
                     let walls: Vec<&Direction> = cell.walls.iter().collect();
-                    if walls.len() <= 1 {
+                    if walls.len() <= 1 || walls.len() == 3 {
                         decision_nodes.insert((cell.x, cell.y), HashMap::new());
                         decision_set.insert((cell.x, cell.y));
                     }

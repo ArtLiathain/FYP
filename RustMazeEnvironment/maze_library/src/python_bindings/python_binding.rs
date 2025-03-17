@@ -1,4 +1,5 @@
 pub mod python_bindings {
+
     use pyo3::{pyfunction, pymodule, types::{PyModule, PyModuleMethods}, wrap_pyfunction, Bound, PyResult};
 
     use crate::{direction::Direction, environment::environment::Environment, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}, python_bindings::environment_bindings::{Action, ActionResult, Info}};
@@ -16,12 +17,19 @@ pub mod python_bindings {
     }
 
     #[pyfunction]
+    #[pyo3(signature=(env))]
+    fn print_weighted_graph(env: &Environment) -> PyResult<()> {
+        println!("{:?}", env.weighted_graph);
+        Ok(())
+    }
+
+    #[pyfunction]
     fn create_wilsons_maze(environment: &mut Environment) -> PyResult<()> {
         let walls_to_break_for_maze = random_wilson_maze(&mut environment.maze);
         environment
             .maze
             .break_walls_for_path(walls_to_break_for_maze);
-
+        environment.weighted_graph = environment.maze.convert_to_weighted_graph();
         Ok(())
     }
     #[pyfunction]
@@ -30,16 +38,17 @@ pub mod python_bindings {
         environment
             .maze
             .break_walls_for_path(walls_to_break_for_maze);
-
+        environment.weighted_graph = environment.maze.convert_to_weighted_graph();
         Ok(())
     }
 
     #[pymodule]
-    fn setup_python_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    fn maze_library(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m.add_function(wrap_pyfunction!(init_environment_python, m)?)?;
         m.add_function(wrap_pyfunction!(create_wilsons_maze, m)?)?;
         m.add_function(wrap_pyfunction!(create_action, m)?)?;
         m.add_function(wrap_pyfunction!(create_kruzkals_maze, m)?)?;
+        m.add_function(wrap_pyfunction!(print_weighted_graph, m)?)?;
         m.add_class::<Direction>()?;
         m.add_class::<Environment>()?;
         m.add_class::<Action>()?;

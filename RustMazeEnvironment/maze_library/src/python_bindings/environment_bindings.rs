@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
@@ -29,7 +29,7 @@ pub struct ActionResult {
 #[derive(Debug, Clone)]
 pub struct Observation {
     #[pyo3(get)]
-    available_paths: HashSet<Direction>,
+    available_paths: HashMap<Direction, usize>,
     #[pyo3(get)]
     current_location: Coordinate,
     #[pyo3(get)]
@@ -50,7 +50,10 @@ fn calculate_manhattan_distance(pos1: Coordinate, pos2: Coordinate) -> usize {
 #[pymethods]
 impl Environment {
     pub fn take_action(&mut self, action: Action) -> ActionResult {
-        let _ = &self.move_from_current(&action.direction);
+        self.path_followed.push(self.current_location);
+        self.visited.insert(self.current_location);
+        let old_location = self.current_location;
+        self.move_from_current(&action.direction);
         let mut reward = -1;
         let mut is_done = false;
         let mut is_truncated = false;
@@ -59,6 +62,10 @@ impl Environment {
             self.visited.insert(self.current_location);
             is_done = true;
         }
+        if calculate_manhattan_distance(self.current_location, self.maze.end) < calculate_manhattan_distance(old_location, self.maze.end) {
+            reward += 3;
+        }
+
         if self.visited.contains(&self.current_location) {
             reward -= 5;
         }
@@ -107,8 +114,13 @@ impl Environment {
     }
 
     pub fn to_json_python(&self) -> PyResult<String> {
-        serde_json::to_string(self)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+        match serde_json::to_string(self) {
+            Ok(json) => Ok(json),
+            Err(e) => {
+                println!("Serialization error: {}", e); // Log the error
+                Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+            }
+        }
     }
 
     #[staticmethod]

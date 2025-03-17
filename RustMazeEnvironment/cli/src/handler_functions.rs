@@ -1,11 +1,10 @@
 use std::{fs::File, io::Read};
 
-use log::warn;
 use maze_library::{environment::environment::Environment, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}};
 use rand::{rng, seq::IteratorRandom};
 use strum::IntoEnumIterator;
 
-use crate::{solving_algorithms::dfs_search::maze_solve::solve_maze_dfs, MazeType, SolveAlgorithm};
+use crate::{solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijksta_solve}, MazeType, SolveAlgorithm};
 
 pub fn read_environment_from_file(filename: &str) -> Environment {
     let mut contents = String::new();
@@ -40,7 +39,7 @@ pub fn generate_environment_list(
 }
 
 pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -> Environment {
-    let mut walls;
+    let walls;
     let mut env = Environment::new(width, height);
     match algorithm {
         MazeType::Wilsons => walls = random_wilson_maze(&env.maze),
@@ -64,7 +63,7 @@ pub fn solve_mazes(environments: &mut Vec<Environment>, algorithm: SolveAlgorith
     let _ = environments.iter_mut().for_each(|env| {
         match algorithm {
             SolveAlgorithm::Dfs => solve_maze_dfs(env),
-            SolveAlgorithm::Bfs => {warn!("PANICKING")}
+            SolveAlgorithm::Dijkstra => {dijksta_solve(env);}
         };
     });
 }

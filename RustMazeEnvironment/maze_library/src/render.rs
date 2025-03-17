@@ -166,7 +166,7 @@ pub mod render {
                         }
 
                         let step_to_use = min(step, environments[env_index].path_followed.len() - 1);
-                        if step_to_use >= environments[env_index].steps - 1 {
+                        if step_to_use >= environments[env_index].path_followed.len() - 1 {
                             array_of_complete[idx] = true;
                         }
 

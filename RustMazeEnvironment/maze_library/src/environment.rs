@@ -1,7 +1,8 @@
 pub mod environment {
     use crate::{direction::Direction, maze::maze::Maze};
+    use log::error;
     use serde::{Deserialize, Serialize};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
     pub type Coordinate = (usize, usize);
     use crate::maze_gen::maze_gen::init_maze;
 
@@ -13,6 +14,8 @@ pub mod environment {
         pub maze: Maze,
         pub steps: usize,
         pub visited: HashSet<Coordinate>,
+        #[serde(skip)]
+        pub weighted_graph: HashMap<Coordinate, HashMap<Direction, usize>>,
     }
 
     impl Environment {
@@ -24,49 +27,36 @@ pub mod environment {
                 maze,
                 steps: 0,
                 visited: HashSet::new(),
+                weighted_graph: HashMap::new(),
             }
         }
     }
 
     impl Environment {
-        pub fn move_from_current(&mut self, direction: &Direction) -> Coordinate {
-            if self.maze.grid[self.current_location.0][self.current_location.1]
-                .walls
-                .contains(direction)
+        pub fn move_from_current(&mut self, direction: &Direction) {
+            let steps = self
+                .weighted_graph
+                .get(&self.current_location)
+                .and_then(|inner_map| inner_map.get(direction))
+                .copied() // Extracts the value as usize instead of &usize
+                .unwrap_or(0);
+            self.steps += steps;
+            match self
+                .maze
+                .move_from(direction, &self.current_location, Some(steps))
             {
-                return self.current_location;
-            }
-            self.steps += 1;
-            self.path_followed.push(self.current_location);
-            self.visited.insert(self.current_location);
-            match direction {
-                Direction::North => {
-                    self.current_location.1 = self.current_location.1.saturating_sub(1);
-                }
-                Direction::South => {
-                    self.current_location.1 = self.current_location.1 + 1;
-                }
-                Direction::East => {
-                    self.current_location.0 = self.current_location.0 + 1;
-                }
-                Direction::West => {
-                    self.current_location.0 = self.current_location.0.saturating_sub(1);
+                Ok(new_loc) => self.current_location = new_loc,
+                Err(_e) => {
+                    error!("MOVE ERROR WITH WEIGHTED GRAPH");
                 }
             }
-            self.current_location
         }
 
-        pub fn available_paths(&self) -> HashSet<Direction> {
-            let walls = HashSet::from([
-                Direction::North,
-                Direction::South,
-                Direction::East,
-                Direction::West,
-            ]);
-            walls
-                .difference(&self.maze.grid[self.current_location.0][self.current_location.1].walls)
-                .cloned()
-                .collect()
+        pub fn available_paths(&self) -> HashMap<Direction, usize> {
+            self.weighted_graph
+                .get(&self.current_location) // Option<&HashMap<Direction, usize>>
+                .map(|paths| paths.clone()) // Clone the inner HashMap
+                .unwrap_or_default()
         }
 
         pub fn to_json(&self) -> String {
