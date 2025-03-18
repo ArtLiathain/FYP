@@ -1,12 +1,18 @@
-use std::{fs::File, io::Read};
+use std::{fs::File, io::{Error, Read}};
 
-use maze_library::{environment::environment::Environment, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}};
+use maze_library::{
+    environment::environment::Environment,
+    maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze},
+};
 use rand::{rng, seq::IteratorRandom};
 use strum::IntoEnumIterator;
 
-use crate::{solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijksta_solve}, MazeType, SolveAlgorithm};
+use crate::{
+    solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijksta_solve},
+    MazeType, SolveAlgorithm,
+};
 
-pub fn read_environment_from_file(filename: &str) -> Environment {
+pub fn read_environment_from_file(filename: &str) -> Result<Environment, Error> {
     let mut contents = String::new();
 
     let _ = match File::open(filename) {
@@ -14,15 +20,15 @@ pub fn read_environment_from_file(filename: &str) -> Environment {
             Ok(_) => Ok(contents.clone()),
             Err(e) => {
                 eprintln!("Error reading file: {}", e);
-                Err(e)
+               Err(e)
             }
         },
         Err(e) => {
             eprintln!("Error opening file: {}", e);
-            Err(e)
+            return Err(e)
         }
     };
-    Environment::from_json(&contents).unwrap()
+    Ok(Environment::from_json(&contents).unwrap())
 }
 
 pub fn generate_environment_list(
@@ -58,12 +64,11 @@ pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -
     env
 }
 
-pub fn solve_mazes(environments: &mut Vec<Environment>, algorithm: SolveAlgorithm) {
-
-    let _ = environments.iter_mut().for_each(|env| {
-        match algorithm {
-            SolveAlgorithm::Dfs => solve_maze_dfs(env),
-            SolveAlgorithm::Dijkstra => {dijksta_solve(env);}
-        };
-    });
+pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
+    match algorithm {
+        SolveAlgorithm::Dfs => solve_maze_dfs(environment),
+        SolveAlgorithm::Dijkstra => {
+            dijksta_solve(environment);
+        }
+    };
 }

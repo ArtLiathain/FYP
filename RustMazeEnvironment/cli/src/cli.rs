@@ -47,6 +47,26 @@ pub enum Commands {
         #[arg(short, long, default_value_t= 5)]
         count: usize,
     },
+    Compare {
+        #[arg(short, long, value_enum, default_values_t=vec![SolveAlgorithm::Dfs, SolveAlgorithm::Dijkstra], num_args = 0..)]
+        solve_algoithms: Vec<SolveAlgorithm>,
+
+        #[arg(short, long, value_enum, default_value_t=MazeType::Random)]
+        gen_algotithm: MazeType,
+
+        #[arg(short, long, required=false)]
+        files_location: Option<String>,
+
+        /// number of mazes to solve
+        #[arg(short, long, default_value_t = 10)]
+        count: usize,
+
+        #[arg(short, long, default_value_t = 20)]
+        width: usize,
+        /// Heigh of maze
+        #[arg(short, long, default_value_t = 20)]
+        length: usize,
+    },
     Test{
         
     }

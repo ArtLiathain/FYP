@@ -4,9 +4,7 @@ pub mod maze_gen {
     use rand::{seq::IteratorRandom, Rng};
     use union_find::{QuickUnionUf, UnionBySize, UnionFind};
 
-    use crate::{
-        direction::Direction, environment::environment::Coordinate, maze::maze::Maze
-    };
+    use crate::{direction::Direction, environment::environment::Coordinate, maze::maze::Maze};
     pub fn init_maze(width: usize, height: usize) -> Maze {
         let mut maze: Maze = Maze::new(width, height);
         maze.set_end((width / 2, height / 2));
@@ -103,6 +101,33 @@ pub mod maze_gen {
             edge_set.remove(&random_edge);
         }
 
+        walls_to_break
+    }
+
+    pub fn break_random_walls(maze: &mut Maze, amount: usize) -> Vec<(Coordinate, Direction)>{
+        let mut edge_set: Vec<(Coordinate, Direction)> = Vec::new();
+        let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
+        for x in 0..maze.width {
+            for y in 0..maze.height {
+                let valid_directions = match (x + 1 < maze.width, y + 1 < maze.height) {
+                    (true, true) => &vec![Direction::South, Direction::East], // Both directions
+                    (false, true) => &vec![Direction::South], // Only South
+                    (true, false) => &vec![Direction::East],  // Only East
+                    _ => &vec![], // No valid moves
+                };
+                
+                edge_set.extend(
+                    maze.grid[x][y]
+                        .walls
+                        .iter()
+                        .filter(|dir| valid_directions.contains(dir))
+                        .map(|dir| ((x, y), *dir)),
+                );
+            }
+        }
+        for _ in 0..amount {
+            walls_to_break.push(edge_set.remove(rand::rng().random_range(0..edge_set.len())));
+        }
         walls_to_break
     }
 

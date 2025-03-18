@@ -7,7 +7,7 @@ pub mod environment {
     use crate::maze_gen::maze_gen::init_maze;
 
     #[cfg_attr(feature = "python", pyo3::pyclass)]
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Environment {
         pub path_followed: Vec<Coordinate>,
         pub current_location: Coordinate,
