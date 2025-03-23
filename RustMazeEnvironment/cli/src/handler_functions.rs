@@ -8,7 +8,7 @@ use rand::{rng, seq::IteratorRandom};
 use strum::IntoEnumIterator;
 
 use crate::{
-    solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijksta_solve},
+    solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijkstra_solve},
     MazeType, SolveAlgorithm,
 };
 
@@ -68,7 +68,7 @@ pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
     match algorithm {
         SolveAlgorithm::Dfs => solve_maze_dfs(environment),
         SolveAlgorithm::Dijkstra => {
-            dijksta_solve(environment);
+            dijkstra_solve(environment);
         }
     };
 }

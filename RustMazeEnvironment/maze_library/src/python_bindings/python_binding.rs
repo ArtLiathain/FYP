@@ -2,7 +2,7 @@ pub mod python_bindings {
 
     use pyo3::{pyfunction, pymodule, types::{PyModule, PyModuleMethods}, wrap_pyfunction, Bound, PyResult};
 
-    use crate::{direction::Direction, environment::environment::Environment, maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze}, python_bindings::environment_bindings::{Action, ActionResult, Info}};
+    use crate::{direction::Direction, environment::environment::Environment, maze_gen::maze_gen::{break_random_walls, random_kruzkals_maze, random_wilson_maze}, python_bindings::environment_bindings::{Action, ActionResult, Info}};
 
     #[pyfunction]
     #[pyo3(signature=(width, height))]
@@ -33,6 +33,15 @@ pub mod python_bindings {
         Ok(())
     }
     #[pyfunction]
+    fn make_maze_imperfect(environment: &mut Environment) -> PyResult<()> {
+        let walls_to_break = break_random_walls(&mut environment.maze, 15);
+        environment
+        .maze
+        .break_walls_for_path(walls_to_break);
+        environment.weighted_graph = environment.maze.convert_to_weighted_graph();
+        Ok(())
+    }
+    #[pyfunction]
     fn create_kruzkals_maze(environment: &mut Environment) -> PyResult<()> {
         let walls_to_break_for_maze = random_kruzkals_maze(&mut environment.maze);
         environment
@@ -49,6 +58,7 @@ pub mod python_bindings {
         m.add_function(wrap_pyfunction!(create_action, m)?)?;
         m.add_function(wrap_pyfunction!(create_kruzkals_maze, m)?)?;
         m.add_function(wrap_pyfunction!(print_weighted_graph, m)?)?;
+        m.add_function(wrap_pyfunction!(make_maze_imperfect, m)?)?;
         m.add_class::<Direction>()?;
         m.add_class::<Environment>()?;
         m.add_class::<Action>()?;

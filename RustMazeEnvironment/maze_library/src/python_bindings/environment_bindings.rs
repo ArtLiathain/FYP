@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
-use crate::{direction::Direction, environment::environment::{Coordinate, Environment}};
+use crate::{
+    direction::Direction,
+    environment::environment::{Coordinate, Environment},
+};
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -41,6 +44,12 @@ pub struct Observation {
 pub struct Info {
     #[pyo3(get)]
     manhattan_distance: usize,
+    #[pyo3(get)]
+    goal_dx: i32,
+    #[pyo3(get)]
+    goal_dy: i32,
+    #[pyo3(get)]
+    visited_node: bool,
 }
 
 fn calculate_manhattan_distance(pos1: Coordinate, pos2: Coordinate) -> usize {
@@ -54,26 +63,41 @@ impl Environment {
         self.visited.insert(self.current_location);
         let old_location = self.current_location;
         self.move_from_current(&action.direction);
-        let mut reward = -1;
+        let mut reward = 0;
         let mut is_done = false;
         let mut is_truncated = false;
         if self.current_location == self.maze.end {
             self.path_followed.push(self.current_location);
             self.visited.insert(self.current_location);
             is_done = true;
+            reward = 1000;
         }
-        if calculate_manhattan_distance(self.current_location, self.maze.end) < calculate_manhattan_distance(old_location, self.maze.end) {
-            reward += 3;
+        if calculate_manhattan_distance(self.current_location, self.maze.end)
+            < calculate_manhattan_distance(old_location, self.maze.end)
+            && !self.visited.contains(&self.current_location)
+        {
+            reward += 10;
         }
 
-        if self.visited.contains(&self.current_location) {
-            reward -= 5;
+        if self.visited.contains(&self.current_location)
+            && self.steps > self.maze.width * self.maze.height
+        {
+            reward -= 3;
         }
+
+        if !self.visited.contains(&self.current_location)
+        {
+            reward += 2;
+        }
+
         if self.steps > self.maze.width * self.maze.height * 3 {
             is_truncated = true;
         }
         let info = Info {
             manhattan_distance: calculate_manhattan_distance(self.current_location, self.maze.end),
+            goal_dx: self.maze.end.0 as i32 - self.current_location.0 as i32,
+            goal_dy: self.maze.end.1 as i32 - self.current_location.1 as i32,
+            visited_node: self.visited.contains(&self.current_location),
         };
         let observation = Observation {
             available_paths: self.available_paths(),
@@ -109,6 +133,9 @@ impl Environment {
                     self.current_location,
                     self.maze.end,
                 ),
+                goal_dx: self.maze.end.0 as i32 - self.current_location.0 as i32,
+                goal_dy: self.maze.end.1 as i32 - self.current_location.1 as i32,
+                visited_node: self.visited.contains(&self.current_location),
             },
         }
     }
@@ -118,7 +145,9 @@ impl Environment {
             Ok(json) => Ok(json),
             Err(e) => {
                 println!("Serialization error: {}", e); // Log the error
-                Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+                Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    e.to_string(),
+                ))
             }
         }
     }
