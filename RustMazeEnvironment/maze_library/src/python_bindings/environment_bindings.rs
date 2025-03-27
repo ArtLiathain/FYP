@@ -61,22 +61,20 @@ fn calculate_manhattan_distance(pos1: Coordinate, pos2: Coordinate) -> usize {
     (pos2.0).abs_diff(pos1.0) + (pos2.1).abs_diff(pos1.1)
 }
 
+
+
 #[pymethods]
 impl Environment {
+
     pub fn take_action(&mut self, action: Action) -> ActionResult {
         self.path_followed.push(self.current_location);
         self.visited.insert(self.current_location);
         let old_location = self.current_location;
         self.move_from_current(&action.direction);
-        let mut reward: f64 = 0.0;
+        let mut reward: f64;
         let mut is_done = false;
         let mut is_truncated = false;
-        if self.current_location == self.maze.end {
-            self.path_followed.push(self.current_location);
-            self.visited.insert(self.current_location);
-            is_done = true;
-            reward = (200 + 10000 / (self.steps + 1)) as f64;
-        }
+        
         
         
 
@@ -84,10 +82,10 @@ impl Environment {
         {
             reward = -0.3;
         }
-
-        if !self.visited.contains(&self.current_location) {
+        else {
             reward = 0.3;
         }
+
         if calculate_manhattan_distance(self.current_location, self.maze.end)
             < calculate_manhattan_distance(old_location, self.maze.end)
         {
@@ -105,8 +103,15 @@ impl Environment {
             reward = -1.0;
         }
 
-        if self.steps > self.maze.width * self.maze.height * 3 {
-            is_truncated = true;
+        // if self.steps > self.maze.width * self.maze.height * 3 {
+        //     is_truncated = true;
+        // }
+
+        if self.current_location == self.maze.end {
+            self.path_followed.push(self.current_location);
+            self.visited.insert(self.current_location);
+            is_done = true;
+            reward = 1000.0 / self.steps as f64;
         }
         let info = Info {
             manhattan_distance: calculate_manhattan_distance(self.current_location, self.maze.end),
