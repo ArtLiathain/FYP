@@ -13,7 +13,8 @@ pub mod environment {
         pub current_location: Coordinate,
         pub maze: Maze,
         pub steps: usize,
-        pub visited: HashSet<Coordinate>,
+        #[serde(skip)]
+        pub visited: HashMap<Coordinate, usize>,
         #[serde(skip)]
         pub weighted_graph: HashMap<Coordinate, HashMap<Direction, usize>>,
     }
@@ -26,7 +27,7 @@ pub mod environment {
                 path_followed: Vec::new(),
                 maze,
                 steps: 0,
-                visited: HashSet::new(),
+                visited: HashMap::new(),
                 weighted_graph: HashMap::new(),
             }
         }
@@ -34,6 +35,8 @@ pub mod environment {
 
     impl Environment {
         pub fn move_from_current(&mut self, direction: &Direction) {
+            self.path_followed.push(self.current_location);
+            *self.visited.entry(self.current_location).or_insert(0) += 1;
             let steps = self
                 .weighted_graph
                 .get(&self.current_location)
@@ -43,9 +46,11 @@ pub mod environment {
             self.steps += steps;
             match self
                 .maze
-                .move_from(direction, &self.current_location, Some(steps))
+                .move_from(direction, &self.current_location, steps)
             {
-                Ok(new_loc) => self.current_location = new_loc,
+                Ok(new_loc) => {
+                    return self.current_location = new_loc;
+                }
                 Err(_e) => {
                     error!("MOVE ERROR WITH WEIGHTED GRAPH");
                 }

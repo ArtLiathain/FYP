@@ -26,7 +26,7 @@ pub mod maze_gen {
             let mut new_path: Vec<(Coordinate, Direction)> = Vec::new();
             loop {
                 let direction = Direction::random();
-                let new_coordinates = match maze.move_from(&direction, &current, None) {
+                let new_coordinates = match maze.move_from(&direction, &current, 1) {
                     Ok(coordinates) => coordinates,
                     Err(_) => {
                         continue;
@@ -84,7 +84,7 @@ pub mod maze_gen {
                 Some(edge) => edge,
                 None => break,
             };
-            let new_cell = match maze.move_from(&random_edge.1, &random_edge.0, None) {
+            let new_cell = match maze.move_from(&random_edge.1, &random_edge.0, 1) {
                 Ok(coordinates) => coordinates,
                 Err(_) => {
                     continue;

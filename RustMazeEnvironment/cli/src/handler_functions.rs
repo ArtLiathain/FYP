@@ -1,4 +1,7 @@
-use std::{fs::File, io::{Error, Read}};
+use std::{
+    fs::File,
+    io::{Error, Read},
+};
 
 use maze_library::{
     environment::environment::Environment,
@@ -8,8 +11,9 @@ use rand::{rng, seq::IteratorRandom};
 use strum::IntoEnumIterator;
 
 use crate::{
+    exploring_algorithms::wall_following::follow_wall_explore,
     solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijkstra_solve},
-    MazeType, SolveAlgorithm,
+    ExploreAlgorithm, MazeType, SolveAlgorithm,
 };
 
 pub fn read_environment_from_file(filename: &str) -> Result<Environment, Error> {
@@ -20,12 +24,12 @@ pub fn read_environment_from_file(filename: &str) -> Result<Environment, Error> 
             Ok(_) => Ok(contents.clone()),
             Err(e) => {
                 eprintln!("Error reading file: {}", e);
-               Err(e)
+                Err(e)
             }
         },
         Err(e) => {
             eprintln!("Error opening file: {}", e);
-            return Err(e)
+            return Err(e);
         }
     };
     Ok(Environment::from_json(&contents).unwrap())
@@ -64,11 +68,29 @@ pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -
     env
 }
 
-pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
+pub fn explore_maze(environment: &mut Environment, algorithm: &ExploreAlgorithm) {
     match algorithm {
-        SolveAlgorithm::Dfs => solve_maze_dfs(environment),
-        SolveAlgorithm::Dijkstra => {
-            dijkstra_solve(environment);
+        ExploreAlgorithm::WallFollowing => {
+            follow_wall_explore(environment);
+        }
+        ExploreAlgorithm::Random => {
+            follow_wall_explore(environment);
         }
     };
+    environment.weighted_graph = environment.maze.convert_to_weighted_graph_visited_only(&environment.visited);
+}
+
+pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
+    let maze = &environment.maze;
+    let path = match algorithm {
+        SolveAlgorithm::Dfs => solve_maze_dfs(environment),
+        SolveAlgorithm::Dijkstra => {
+            dijkstra_solve(
+                &environment,
+                maze.start,
+                maze.end,
+            )
+        }
+    };
+    environment.path_followed.extend(path);
 }

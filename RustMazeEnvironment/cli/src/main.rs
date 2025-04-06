@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
 use cli::{Cli, Commands};
-use handler_functions::{generate_environment, generate_environment_list, read_environment_from_file, solve_maze};
+use handler_functions::{explore_maze, generate_environment, generate_environment_list, read_environment_from_file, solve_maze};
 use strum_macros::EnumIter;
 mod cli;
 mod handler_functions;
+pub mod exploring_algorithms;
 pub mod solving_algorithms;
 use clap::{Parser, ValueEnum};
 use log::info;
@@ -25,13 +26,18 @@ fn window_conf() -> Conf {
         ..Default::default()
     }
 }
+
 #[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
 pub enum MazeType {
     Kruzkals,
     Wilsons,
     Random,
 }
-
+#[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
+pub enum ExploreAlgorithm {
+    WallFollowing,
+    Random,
+}
 #[derive(ValueEnum, Clone, Debug)]
 pub enum SolveAlgorithm {
     Dfs,
@@ -45,6 +51,7 @@ fn main() {
 
     match cli.command {
         Commands::Solve {
+            explore_algoithm,
             gen_algotithm,
             solve_algoithm,
             count,
@@ -53,16 +60,22 @@ fn main() {
         } => {
             info!("Starting maze solving process...");
             info!(
-                "Generation Algorithm: {:?}, Solve Algorithm: {:?}",
-                gen_algotithm, solve_algoithm
+                "Generation Algorithm: {:?}, Solve Algorithm: {:?}, Exploration Algorithm: {:?}",
+                gen_algotithm, solve_algoithm, explore_algoithm
             );
             info!(
                 "Maze count: {}, Width: {}, Height: {}",
                 count, width, length
             );
             let mut environments = generate_environment_list(&gen_algotithm, width, length, count);
+            
             for mut environment in environments.iter_mut() {
+                environment.weighted_graph = environment.maze.convert_to_weighted_graph();
+                explore_maze(&mut environment, &explore_algoithm);
+                println!("explored");
                 solve_maze(&mut environment, &solve_algoithm);
+                println!("solved");
+
             }
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop

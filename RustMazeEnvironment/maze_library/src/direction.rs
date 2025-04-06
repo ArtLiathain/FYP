@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Direction {
     North = 0,
-    South = 1,
-    East = 2,
+    East = 1,
+    South = 2,
     West = 3,
 }
 
@@ -37,6 +37,16 @@ impl Direction {
             Direction::East => Direction::West,
             Direction::West => Direction::East,
         }
+    }
+
+    pub fn relative_direction(&self, prev_direction: &Direction) -> Direction {
+        let direction_array = [
+            Direction::North,
+            Direction::East,
+            Direction::South,
+            Direction::West,
+        ];
+        direction_array[(*prev_direction as usize + *self as usize) % 4]
     }
 }
 

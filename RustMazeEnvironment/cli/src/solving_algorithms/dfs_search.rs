@@ -1,8 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, vec};
 
-use maze_library::environment::environment::Environment;
+use maze_library::environment::environment::{Coordinate, Environment};
 
-pub fn solve_maze_dfs(env: &mut Environment) {
+pub fn solve_maze_dfs(env: &Environment) -> Vec<Coordinate> {
     let mut stack: Vec<((usize, usize), usize)> = vec![(env.maze.get_starting_point(), 0)]; // Stack for DFS
     let mut visited = HashSet::new(); // Track visited cells
     let mut path = vec![]; // Final path to the goal
@@ -28,13 +28,12 @@ pub fn solve_maze_dfs(env: &mut Environment) {
         // If we've reached the end, return the path
         if current.0 == end {
             // env.maze.take_step(step-1);
-            env.path_followed = path.into_iter().map(|(coords, _)| coords).collect();
-            env.steps = env.path_followed.len();
-            return;
+            return path.into_iter().map(|(coords, _)| coords).collect();
+            
         }
         // Explore neighbors
         for (direction, steps) in weighted_graph.get(&current.0).unwrap_or(&HashMap::new()) {
-            let neighbor = match env.maze.move_from(direction, &current.0, Some(*steps)) {
+            let neighbor = match env.maze.move_from(direction, &current.0, *steps) {
                 Ok(coordinates) => coordinates,
                 Err(_) => {
                     continue;
@@ -47,4 +46,5 @@ pub fn solve_maze_dfs(env: &mut Environment) {
         }
     }
     println!("NO PATH FOUND");
+    vec![]
 }

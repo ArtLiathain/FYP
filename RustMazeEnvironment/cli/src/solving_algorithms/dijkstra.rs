@@ -3,20 +3,26 @@ use std::{
     collections::{BinaryHeap, HashMap, HashSet},
 };
 
-use maze_library::environment::environment::{Coordinate, Environment};
+use maze_library::{
+    environment::environment::{Coordinate, Environment},
+    maze::maze::{directional_movement, to_usize_tuple},
+};
 
-pub fn dijkstra_solve(env: &mut Environment) {
+pub fn dijkstra_solve(
+    env : &Environment,
+    start: Coordinate,
+    end: Coordinate,
+) -> Vec<Coordinate> {
     let mut main_stack = BinaryHeap::new(); // Priority queue
     let mut path_map: HashMap<Coordinate, (usize, Coordinate)> = HashMap::new();
     let mut visited = HashSet::new(); // Track visited cells
-
-    path_map.insert(env.maze.get_starting_point(), (0, env.maze.get_starting_point()));
-    main_stack.push(Reverse((0, env.maze.get_starting_point()))); // Push starting point
-
-    let weighted_graph = env.maze.convert_to_weighted_graph();
+    let weighted_graph = &env.weighted_graph;
+    let env_visited = &env.visited;
+    path_map.insert(start, (0, start));
+    main_stack.push(Reverse((0, start))); // Push starting point
 
     while let Some(Reverse((distance, current))) = main_stack.pop() {
-        if visited.contains(&current) {
+        if visited.contains(&current) || !env_visited.contains_key(&current) {
             continue;
         }
 
@@ -26,7 +32,7 @@ pub fn dijkstra_solve(env: &mut Environment) {
             .get(&current)
             .unwrap()
             .iter()
-            .map(|(k, &v)| (env.maze.move_from(k, &current, Some(v)).unwrap(), v))
+            .map(|(k, &v)| (to_usize_tuple(directional_movement(k, &current, v)), v))
             .filter(|(neighbor, _)| !visited.contains(neighbor))
             .collect();
 
@@ -40,20 +46,20 @@ pub fn dijkstra_solve(env: &mut Environment) {
         }
     }
 
-    let mut head = env.maze.end;
-    let (final_steps, _) = path_map.get(&env.maze.end).unwrap();
-    env.steps = *final_steps;
-
+    let mut head = end;
     let mut path_followed = vec![];
-    while head != env.maze.start {
+    while head != start {
         if let Some((_, temp)) = path_map.get(&head) {
             path_followed.push(head);
             head = *temp;
         } else {
-            panic!("Failed to reconstruct the path: Node {:?} is unreachable.", head);
+            panic!(
+                "Failed to reconstruct the path: Node {:?} is unreachable.",
+                head
+            );
         }
     }
-    path_followed.push(env.maze.start);
+    path_followed.push(start);
     path_followed.reverse();
-    env.path_followed = path_followed;
+    path_followed
 }

@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use crate::{MazeType, SolveAlgorithm};
+use crate::{ExploreAlgorithm, MazeType, SolveAlgorithm};
 
 #[derive(Parser)]
 #[command(name = "RustMazeCLI")]
@@ -14,13 +14,18 @@ pub struct Cli {
 pub enum Commands {
     /// Solve a maze with given parameters
     Solve {
+        /// Maze exploring algorithm
+        #[arg(short, long, value_enum, default_value_t=ExploreAlgorithm::Random)]
+        explore_algoithm: ExploreAlgorithm,
+
         /// maze generation algotithm
         #[arg(short, long, value_enum, default_value_t=MazeType::Random)]
         gen_algotithm: MazeType,
 
         /// Maze solving algorithm
-        #[arg(short, long, value_enum, default_value_t=SolveAlgorithm::Dfs)]
+        #[arg(short, long, value_enum, default_value_t=SolveAlgorithm::Dijkstra)]
         solve_algoithm: SolveAlgorithm,
+        
 
         /// number of mazes to solve
         #[arg(short, long, default_value_t = 10)]

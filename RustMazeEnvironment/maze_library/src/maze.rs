@@ -1,11 +1,11 @@
 pub mod maze {
     use serde::{Deserialize, Serialize};
     use std::{
-        collections::{HashMap, HashSet},usize
+        collections::{HashMap, HashSet},
+        usize,
     };
 
     use crate::{direction::Direction, environment::environment::Coordinate};
-
 
     #[derive(Debug, Clone)]
     pub enum MoveError {
@@ -27,6 +27,25 @@ pub mod maze {
         pub grid: Vec<Vec<Cell>>,
         pub start: Coordinate,
         pub end: Coordinate,
+    }
+
+    pub fn directional_movement(
+        direction: &Direction,
+        coordinates: &Coordinate,
+        steps: usize,
+    ) -> (i32, i32) {
+        let i32steps = steps as i32;
+        let (x, y) = (coordinates.0 as i32, coordinates.1 as i32);
+        match direction {
+            Direction::North => (x, y - i32steps),
+            Direction::South => (x, y + i32steps),
+            Direction::East => (x + i32steps, y),
+            Direction::West => (x - i32steps, y),
+        }
+    }
+
+    pub fn to_usize_tuple(coord: (i32, i32)) -> (usize, usize) {
+        (coord.0 as usize, coord.1 as usize)
     }
 
     impl Maze {
@@ -80,40 +99,29 @@ pub mod maze {
             }
         }
 
-        pub fn move_from_with_walls(&self,
+        pub fn move_from_with_walls(
+            &self,
             direction: &Direction,
-            coordinates: &Coordinate) -> Result<Coordinate, MoveError> {
-            if self.grid[coordinates.0][coordinates.1].walls.contains(direction) {
+            coordinates: &Coordinate,
+        ) -> Result<Coordinate, MoveError> {
+            if self.grid[coordinates.0][coordinates.1]
+                .walls
+                .contains(direction)
+            {
                 return Err(MoveError::OutOfBounds);
             }
-            self.move_from(direction, coordinates, None)
-            
+            self.move_from(direction, coordinates, 1)
         }
 
         pub fn move_from(
             &self,
             direction: &Direction,
             coordinates: &Coordinate,
-            steps : Option<usize>
+            steps: usize,
         ) -> Result<Coordinate, MoveError> {
-            let (x,  y)  = (coordinates.0 as i32, coordinates.1 as i32);
-            let steps_to_take = steps.unwrap_or(1) as i32;
-            let new_coordinates = match direction {
-                Direction::North => {
-                    (x, y - steps_to_take)
-                }
-                Direction::South => {
-                    (x, y + steps_to_take)
-                }
-                Direction::East => {
-                    (x + steps_to_take, y)
-                }
-                Direction::West => {
-                    (x - steps_to_take, y)
-                }
-            };
+            let new_coordinates =  directional_movement(direction, coordinates, steps);
             if !self.in_bounds(new_coordinates) {
-               return Err(MoveError::OutOfBounds);
+                return Err(MoveError::OutOfBounds);
             }
             Ok((new_coordinates.0 as usize, new_coordinates.1 as usize))
         }
@@ -125,9 +133,11 @@ pub mod maze {
         }
         pub fn break_wall_for_path(&mut self, path: &Vec<(Coordinate, Direction)>, index: usize) {
             let current_cell = path[index].0;
-            let next_cell = match self.move_from(&path[index].1, &path[index].0, None) {
-                Ok(coordinates) => {coordinates},
-                Err(_) => {return;}
+            let next_cell = match self.move_from(&path[index].1, &path[index].0, 1) {
+                Ok(coordinates) => coordinates,
+                Err(_) => {
+                    return;
+                }
             };
             let direction = path[index].1;
             self.grid[next_cell.0][next_cell.1]
@@ -138,15 +148,20 @@ pub mod maze {
                 .remove(&direction);
         }
 
-        fn follow_path(&self, coordinates: &Coordinate, direction: &Direction, decision_nodes: &HashSet<Coordinate>) -> usize {
+        fn follow_path(
+            &self,
+            coordinates: &Coordinate,
+            direction: &Direction,
+            decision_nodes: &HashSet<Coordinate>,
+        ) -> usize {
             let mut steps = 0;
             let mut current = *coordinates;
             loop {
                 current = match self.move_from_with_walls(direction, &current) {
-                    Ok(coordinates) => {coordinates},
-                    Err(_) => {return steps}
+                    Ok(coordinates) => coordinates,
+                    Err(_) => return steps,
                 };
-                steps+=1;
+                steps += 1;
                 if decision_nodes.contains(&current) {
                     break;
                 }
@@ -154,11 +169,8 @@ pub mod maze {
             steps
         }
 
-        pub fn convert_to_weighted_graph(
-            &self,
-        ) -> HashMap<Coordinate, HashMap<Direction, usize>> {
-            let mut decision_nodes: HashMap<Coordinate, HashMap<Direction, usize>> =
-                HashMap::new();
+        pub fn convert_to_weighted_graph(&self) -> HashMap<Coordinate, HashMap<Direction, usize>> {
+            let mut decision_nodes: HashMap<Coordinate, HashMap<Direction, usize>> = HashMap::new();
             let mut decision_set: HashSet<Coordinate> = HashSet::new();
 
             decision_nodes.insert(self.start, HashMap::new());
@@ -180,7 +192,12 @@ pub mod maze {
                     }
                 }
             }
-            let directions = vec!(Direction::North,Direction::South,Direction::East,Direction::West);
+            let directions = vec![
+                Direction::North,
+                Direction::South,
+                Direction::East,
+                Direction::West,
+            ];
             for (coordinate, inner_map) in decision_nodes.iter_mut() {
                 for direction in &directions {
                     let steps = self.follow_path(&coordinate, &direction, &decision_set);
@@ -188,7 +205,54 @@ pub mod maze {
                         inner_map.insert(*direction, steps);
                     }
                 }
-            }          
+            }
+
+            decision_nodes
+        }
+
+        pub fn convert_to_weighted_graph_visited_only(
+            &self,
+            visited: &HashMap<Coordinate, usize>,
+        ) -> HashMap<Coordinate, HashMap<Direction, usize>> {
+            let mut decision_nodes: HashMap<Coordinate, HashMap<Direction, usize>> = HashMap::new();
+            let mut decision_set: HashSet<Coordinate> = HashSet::new();
+
+            decision_nodes.insert(self.start, HashMap::new());
+            decision_nodes.insert(self.end, HashMap::new());
+            decision_set.insert(self.start);
+            decision_set.insert(self.end);
+
+            for row in 0..self.height {
+                for column in 0..self.width {
+                    if !visited.contains_key(&(row, column)) {
+                        continue;
+                    }
+                    let cell = &self.grid[row][column];
+                    let walls: Vec<&Direction> = cell.walls.iter().collect();
+                    if walls.len() <= 1 || walls.len() == 3 {
+                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
+                        decision_set.insert((cell.x, cell.y));
+                    }
+                    if walls.len() == 2 && *walls[0] != walls[1].opposite_direction() {
+                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
+                        decision_set.insert((cell.x, cell.y));
+                    }
+                }
+            }
+            let directions = vec![
+                Direction::North,
+                Direction::South,
+                Direction::East,
+                Direction::West,
+            ];
+            for (coordinate, inner_map) in decision_nodes.iter_mut() {
+                for direction in &directions {
+                    let steps = self.follow_path(&coordinate, &direction, &decision_set);
+                    if steps > 0 {
+                        inner_map.insert(*direction, steps);
+                    }
+                }
+            }
 
             decision_nodes
         }

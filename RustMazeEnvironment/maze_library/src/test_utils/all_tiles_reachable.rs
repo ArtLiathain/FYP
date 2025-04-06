@@ -18,7 +18,7 @@ pub fn all_tiles_reachable(maze: &Maze) -> bool {
             Direction::East,
             Direction::West,
         ] {
-            let neighbor = match maze.move_from(direction, &current, None) {
+            let neighbor = match maze.move_from(direction, &current, 1) {
                 Ok(coordinates) => coordinates,
                 Err(_) => {
                     continue;
