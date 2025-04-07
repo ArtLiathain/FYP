@@ -119,7 +119,7 @@ pub mod maze {
             coordinates: &Coordinate,
             steps: usize,
         ) -> Result<Coordinate, MoveError> {
-            let new_coordinates =  directional_movement(direction, coordinates, steps);
+            let new_coordinates = directional_movement(direction, coordinates, steps);
             if !self.in_bounds(new_coordinates) {
                 return Err(MoveError::OutOfBounds);
             }

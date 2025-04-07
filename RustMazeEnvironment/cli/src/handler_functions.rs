@@ -77,20 +77,16 @@ pub fn explore_maze(environment: &mut Environment, algorithm: &ExploreAlgorithm)
             follow_wall_explore(environment);
         }
     };
-    environment.weighted_graph = environment.maze.convert_to_weighted_graph_visited_only(&environment.visited);
+    environment.weighted_graph = environment
+        .maze
+        .convert_to_weighted_graph_visited_only(&environment.visited);
 }
 
 pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
     let maze = &environment.maze;
     let path = match algorithm {
         SolveAlgorithm::Dfs => solve_maze_dfs(environment),
-        SolveAlgorithm::Dijkstra => {
-            dijkstra_solve(
-                &environment,
-                maze.start,
-                maze.end,
-            )
-        }
+        SolveAlgorithm::Dijkstra => dijkstra_solve(&environment, maze.start, maze.end),
     };
     environment.path_followed.extend(path);
 }

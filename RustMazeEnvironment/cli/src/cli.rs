@@ -25,7 +25,6 @@ pub enum Commands {
         /// Maze solving algorithm
         #[arg(short, long, value_enum, default_value_t=SolveAlgorithm::Dijkstra)]
         solve_algoithm: SolveAlgorithm,
-        
 
         /// number of mazes to solve
         #[arg(short, long, default_value_t = 10)]
@@ -49,7 +48,7 @@ pub enum Commands {
         start: usize,
 
         /// Number of files to iterate over
-        #[arg(short, long, default_value_t= 5)]
+        #[arg(short, long, default_value_t = 5)]
         count: usize,
     },
     Compare {
@@ -59,7 +58,7 @@ pub enum Commands {
         #[arg(short, long, value_enum, default_value_t=MazeType::Random)]
         gen_algotithm: MazeType,
 
-        #[arg(short, long, required=false)]
+        #[arg(short, long, required = false)]
         files_location: Option<String>,
 
         /// number of mazes to solve
@@ -72,7 +71,5 @@ pub enum Commands {
         #[arg(short, long, default_value_t = 20)]
         length: usize,
     },
-    Test{
-        
-    }
+    Test {},
 }

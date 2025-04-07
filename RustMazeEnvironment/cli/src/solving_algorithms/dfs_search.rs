@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet}, vec};
+use std::{
+    collections::{HashMap, HashSet},
+    vec,
+};
 
 use maze_library::environment::environment::{Coordinate, Environment};
 
@@ -29,7 +32,6 @@ pub fn solve_maze_dfs(env: &Environment) -> Vec<Coordinate> {
         if current.0 == end {
             // env.maze.take_step(step-1);
             return path.into_iter().map(|(coords, _)| coords).collect();
-            
         }
         // Explore neighbors
         for (direction, steps) in weighted_graph.get(&current.0).unwrap_or(&HashMap::new()) {

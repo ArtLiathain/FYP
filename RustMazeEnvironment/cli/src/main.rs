@@ -1,11 +1,14 @@
 use std::collections::HashSet;
 
 use cli::{Cli, Commands};
-use handler_functions::{explore_maze, generate_environment, generate_environment_list, read_environment_from_file, solve_maze};
+use handler_functions::{
+    explore_maze, generate_environment, generate_environment_list, read_environment_from_file,
+    solve_maze,
+};
 use strum_macros::EnumIter;
 mod cli;
-mod handler_functions;
 pub mod exploring_algorithms;
+mod handler_functions;
 pub mod solving_algorithms;
 use clap::{Parser, ValueEnum};
 use log::info;
@@ -68,14 +71,13 @@ fn main() {
                 count, width, length
             );
             let mut environments = generate_environment_list(&gen_algotithm, width, length, count);
-            
+
             for mut environment in environments.iter_mut() {
                 environment.weighted_graph = environment.maze.convert_to_weighted_graph();
                 explore_maze(&mut environment, &explore_algoithm);
                 println!("explored");
                 solve_maze(&mut environment, &solve_algoithm);
                 println!("solved");
-
             }
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
@@ -110,24 +112,26 @@ fn main() {
             length,
         } => {
             let mut environment: Environment;
-            
+
             match read_environment_from_file(&files_location.unwrap_or("".to_string())) {
                 Ok(env) => environment = env,
                 Err(_) => {
                     environment = generate_environment(&gen_algotithm, width, length);
-                    let extra_walls = break_random_walls(&mut environment.maze,40);
+                    let extra_walls = break_random_walls(&mut environment.maze, 40);
                     environment.maze.break_walls_for_path(extra_walls);
                 }
             }
             let mut environments = vec![environment; count];
             for (index, mut environment) in environments.iter_mut().enumerate() {
-                solve_maze(&mut environment, &solve_algoithms[index%solve_algoithms.len()]);
+                solve_maze(
+                    &mut environment,
+                    &solve_algoithms[index % solve_algoithms.len()],
+                );
             }
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
                 render_mazes(environments, cell_size).await;
             });
-
         }
         Commands::Test {} => {
             let filename = format!("../mazeLogs/error_0.json");

@@ -7,7 +7,7 @@ pub fn follow_wall_explore(env: &mut Environment) {
     let end = env.maze.end;
     let mut previous: Option<Direction> = None;
     let mut has_not_reached_end = true;
-    while env.current_location != start || has_not_reached_end{
+    while env.current_location != start || has_not_reached_end {
         if env.current_location == end {
             has_not_reached_end = false;
         }

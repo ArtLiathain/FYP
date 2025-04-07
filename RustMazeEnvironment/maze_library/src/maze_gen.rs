@@ -104,18 +104,18 @@ pub mod maze_gen {
         walls_to_break
     }
 
-    pub fn break_random_walls(maze: &mut Maze, amount: usize) -> Vec<(Coordinate, Direction)>{
+    pub fn break_random_walls(maze: &mut Maze, amount: usize) -> Vec<(Coordinate, Direction)> {
         let mut edge_set: Vec<(Coordinate, Direction)> = Vec::new();
         let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
         for x in 0..maze.width {
             for y in 0..maze.height {
                 let valid_directions = match (x + 1 < maze.width, y + 1 < maze.height) {
                     (true, true) => &vec![Direction::South, Direction::East], // Both directions
-                    (false, true) => &vec![Direction::South], // Only South
-                    (true, false) => &vec![Direction::East],  // Only East
-                    _ => &vec![], // No valid moves
+                    (false, true) => &vec![Direction::South],                 // Only South
+                    (true, false) => &vec![Direction::East],                  // Only East
+                    _ => &vec![],                                             // No valid moves
                 };
-                
+
                 edge_set.extend(
                     maze.grid[x][y]
                         .walls
@@ -133,7 +133,7 @@ pub mod maze_gen {
 
     #[cfg(test)]
     mod tests {
-        use crate::{maze, test_utils::all_tiles_reachable::all_tiles_reachable};
+        use crate::test_utils::all_tiles_reachable::all_tiles_reachable;
 
         use super::*;
 

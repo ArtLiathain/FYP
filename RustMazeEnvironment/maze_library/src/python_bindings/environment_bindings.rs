@@ -97,7 +97,7 @@ impl Environment {
 
         if number_visits > 5 {
             is_truncated = true;
-            reward-= 10.0;
+            reward -= 10.0;
         }
 
         if self.current_location == self.maze.end {
@@ -110,7 +110,8 @@ impl Environment {
             manhattan_distance: calculate_manhattan_distance(self.current_location, self.maze.end),
             goal_dx: self.maze.end.0 as i32 - self.current_location.0 as i32,
             goal_dy: self.maze.end.1 as i32 - self.current_location.1 as i32,
-            visited_amount: 1.0 - *self.visited.get(&self.current_location).unwrap_or(&0) as f64 / 5.0,
+            visited_amount: 1.0
+                - *self.visited.get(&self.current_location).unwrap_or(&0) as f64 / 5.0,
             previous_node: old_location,
         };
         let available_paths = self.available_paths();
@@ -188,7 +189,8 @@ impl Environment {
                 ),
                 goal_dx: self.maze.end.0 as i32 - self.current_location.0 as i32,
                 goal_dy: self.maze.end.1 as i32 - self.current_location.1 as i32,
-                visited_amount: 1.0 - *self.visited.get(&self.current_location).unwrap_or(&0) as f64 / 5.0,
+                visited_amount: 1.0
+                    - *self.visited.get(&self.current_location).unwrap_or(&0) as f64 / 5.0,
                 previous_node: (0, 0),
             },
         }

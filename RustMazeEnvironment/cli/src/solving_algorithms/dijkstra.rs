@@ -8,11 +8,7 @@ use maze_library::{
     maze::maze::{directional_movement, to_usize_tuple},
 };
 
-pub fn dijkstra_solve(
-    env : &Environment,
-    start: Coordinate,
-    end: Coordinate,
-) -> Vec<Coordinate> {
+pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> Vec<Coordinate> {
     let mut main_stack = BinaryHeap::new(); // Priority queue
     let mut path_map: HashMap<Coordinate, (usize, Coordinate)> = HashMap::new();
     let mut visited = HashSet::new(); // Track visited cells

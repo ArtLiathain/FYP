@@ -10,7 +10,6 @@ pub mod render {
     use std::collections::HashSet;
     use std::thread::sleep;
     use std::time::Duration;
-    
 
     pub async fn draw_maze(
         environment: &Environment,
@@ -165,7 +164,8 @@ pub mod render {
                             continue;
                         }
 
-                        let step_to_use = min(step, environments[env_index].path_followed.len() - 1);
+                        let step_to_use =
+                            min(step, environments[env_index].path_followed.len() - 1);
                         if step_to_use >= environments[env_index].path_followed.len() - 1 {
                             array_of_complete[idx] = true;
                         }
@@ -175,11 +175,12 @@ pub mod render {
                             cell_size,
                             &visited_nodes[idx],
                             step_to_use,
-                            cell_size * (col * (environments[0].maze.width + 2) ) as f32,
+                            cell_size * (col * (environments[0].maze.width + 2)) as f32,
                             cell_size * (row * (environments[0].maze.height + 2)) as f32,
                         )
                         .await;
-                        visited_nodes[idx].insert(environments[env_index].path_followed[step_to_use]);
+                        visited_nodes[idx]
+                            .insert(environments[env_index].path_followed[step_to_use]);
                         screens_displayed += 1;
                         if screens_displayed >= amount_of_screens {
                             break;

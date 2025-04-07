@@ -2,7 +2,7 @@ pub mod environment {
     use crate::{direction::Direction, maze::maze::Maze};
     use log::error;
     use serde::{Deserialize, Serialize};
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
     pub type Coordinate = (usize, usize);
     use crate::maze_gen::maze_gen::init_maze;
 
