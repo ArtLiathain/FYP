@@ -48,6 +48,10 @@ impl Direction {
         ];
         direction_array[(*prev_direction as usize + *self as usize) % 4]
     }
+
+    pub fn turn_amount(&self, prev_direction: &Direction) -> usize {
+        (*prev_direction as i32 - *self as i32).abs() as usize
+    }
 }
 
 impl Direction {

@@ -46,6 +46,8 @@ pub struct Observation {
 #[derive(Debug, Clone)]
 pub struct Info {
     #[pyo3(get)]
+    previous_direction: usize,
+    #[pyo3(get)]
     manhattan_distance: usize,
     #[pyo3(get)]
     goal_dx: i32,
@@ -61,20 +63,31 @@ fn calculate_manhattan_distance(pos1: Coordinate, pos2: Coordinate) -> usize {
     (pos2.0).abs_diff(pos1.0) + (pos2.1).abs_diff(pos1.1)
 }
 
-#[pymethods]
 impl Environment {
-    pub fn take_action(&mut self, action: Action) -> ActionResult {
-        let old_location = self.current_location;
-        self.move_from_current(&action.direction);
-        let mut reward: f64;
+    fn calculate_reward_for_solving(
+        &self,
+        old_location: Coordinate,
+        old_direction: Option<Direction>,
+    ) -> (bool, bool, f64) {
         let mut is_done = false;
         let mut is_truncated = false;
+        let mut reward = 0.0;
+
+        //For turnin penalties
+        if old_direction.is_some() {
+            //This is actually the new direction due to it being caclulated after moving
+            let difference = self
+                .previous_direction
+                .unwrap()
+                .turn_amount(&old_direction.unwrap());
+            reward -= difference as f64 * 1.0;
+        }
 
         let number_visits = *self.visited.get(&self.current_location).unwrap_or(&0);
         if number_visits > 0 {
-            reward = f64::max(-0.3, number_visits as f64 * -0.1);
+            reward -= f64::min(0.3, number_visits as f64 * 0.1);
         } else {
-            reward = 0.5;
+            reward += 0.5;
         }
 
         if calculate_manhattan_distance(self.current_location, self.maze.end)
@@ -91,6 +104,8 @@ impl Environment {
                 reward -= 0.7; // Penalty for oscillating motion
             }
         }
+
+        //Running into a wall essentially
         if self.current_location == old_location {
             reward -= 1.0;
         }
@@ -101,12 +116,29 @@ impl Environment {
         }
 
         if self.current_location == self.maze.end {
-            self.path_followed.push(self.current_location);
-            *self.visited.entry(self.current_location).or_insert(0) += 1;
             is_done = true;
             reward += 50.0;
         }
+
+        (is_done, is_truncated, reward)
+    }
+}
+
+#[pymethods]
+impl Environment {
+    pub fn take_action(&mut self, action: Action) -> ActionResult {
+        let old_location = self.current_location;
+        let old_direction = self.previous_direction;
+        self.move_from_current(&action.direction);
+        let (is_done, is_truncated, reward) =
+            self.calculate_reward_for_solving(old_location, old_direction);
+        if is_done {
+            self.path_followed.push(self.current_location);
+            *self.visited.entry(self.current_location).or_insert(0) += 1;
+        }
+
         let info = Info {
+            previous_direction: self.previous_direction.unwrap_or(Direction::North) as usize,
             manhattan_distance: calculate_manhattan_distance(self.current_location, self.maze.end),
             goal_dx: self.maze.end.0 as i32 - self.current_location.0 as i32,
             goal_dy: self.maze.end.1 as i32 - self.current_location.1 as i32,
@@ -183,6 +215,7 @@ impl Environment {
             reward: 0.0,
 
             info: Info {
+                previous_direction: self.previous_direction.unwrap_or(Direction::North) as usize,
                 manhattan_distance: calculate_manhattan_distance(
                     self.current_location,
                     self.maze.end,

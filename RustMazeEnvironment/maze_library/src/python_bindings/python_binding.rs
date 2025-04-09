@@ -9,14 +9,20 @@ pub mod python_bindings {
     use crate::{
         direction::Direction,
         environment::environment::Environment,
+        environment_config::{EnvConfig, PythonConfig},
         maze_gen::maze_gen::{break_random_walls, random_kruzkals_maze, random_wilson_maze},
         python_bindings::environment_bindings::{Action, ActionResult, Info},
     };
 
     #[pyfunction]
-    #[pyo3(signature=(width, height))]
-    fn init_environment_python(width: usize, height: usize) -> PyResult<Environment> {
-        Ok(Environment::new(width, height))
+    #[pyo3(signature=(width, height, allowed_revisits))]
+    fn init_environment_python(
+        width: usize,
+        height: usize,
+        allowed_revisits: usize,
+    ) -> PyResult<Environment> {
+        let config = EnvConfig::new(width, height, PythonConfig { allowed_revisits });
+        Ok(Environment::new(config))
     }
 
     #[pyfunction]

@@ -1,5 +1,5 @@
 pub mod environment {
-    use crate::{direction::Direction, maze::maze::Maze};
+    use crate::{direction::Direction, environment_config::EnvConfig, maze::maze::Maze};
     use log::error;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
@@ -11,8 +11,10 @@ pub mod environment {
     pub struct Environment {
         pub path_followed: Vec<Coordinate>,
         pub current_location: Coordinate,
+        pub previous_direction: Option<Direction>,
         pub maze: Maze,
         pub steps: usize,
+        pub config: EnvConfig,
         #[serde(skip)]
         pub visited: HashMap<Coordinate, usize>,
         #[serde(skip)]
@@ -20,11 +22,13 @@ pub mod environment {
     }
 
     impl Environment {
-        pub fn new(width: usize, height: usize) -> Environment {
-            let maze = init_maze(width, height);
+        pub fn new(env_config: EnvConfig) -> Environment {
+            let maze = init_maze(env_config.maze_width, env_config.maze_height);
             Environment {
                 current_location: maze.start,
                 path_followed: Vec::new(),
+                previous_direction: None,
+                config: env_config,
                 maze,
                 steps: 0,
                 visited: HashMap::new(),
@@ -49,6 +53,7 @@ pub mod environment {
                 .move_from(direction, &self.current_location, steps)
             {
                 Ok(new_loc) => {
+                    self.previous_direction = Some(*direction);
                     return self.current_location = new_loc;
                 }
                 Err(_e) => {

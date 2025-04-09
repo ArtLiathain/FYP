@@ -5,6 +5,7 @@ use std::{
 
 use maze_library::{
     environment::environment::Environment,
+    environment_config::EnvConfig,
     maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze},
 };
 use rand::{rng, seq::IteratorRandom};
@@ -50,7 +51,7 @@ pub fn generate_environment_list(
 
 pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -> Environment {
     let walls;
-    let mut env = Environment::new(width, height);
+    let mut env = Environment::new(EnvConfig::new_rust_config(width, height));
     match algorithm {
         MazeType::Wilsons => walls = random_wilson_maze(&env.maze),
         MazeType::Kruzkals => walls = random_kruzkals_maze(&env.maze),

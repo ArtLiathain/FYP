@@ -28,7 +28,12 @@ pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> 
             .get(&current)
             .unwrap()
             .iter()
-            .map(|(k, &v)| (to_usize_tuple(directional_movement(k, &current, v)), v))
+            .map(|(direction, &steps)| {
+                (
+                    to_usize_tuple(directional_movement(direction, &current, steps)),
+                    steps,
+                )
+            })
             .filter(|(neighbor, _)| !visited.contains(neighbor))
             .collect();
 

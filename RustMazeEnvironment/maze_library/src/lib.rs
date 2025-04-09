@@ -1,6 +1,7 @@
 pub mod constants;
 pub mod direction;
 pub mod environment;
+pub mod environment_config;
 pub mod maze;
 pub mod maze_gen;
 pub mod render;
