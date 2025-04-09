@@ -1,10 +1,9 @@
-use core::num;
-use std::{cmp, collections::HashMap};
+use std::collections::HashMap;
 
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
 use crate::{
-    direction::{self, Direction},
+    direction::Direction,
     environment::environment::{Coordinate, Environment},
 };
 
@@ -59,6 +58,20 @@ pub struct Info {
     previous_node: Coordinate,
 }
 
+impl Info {
+    pub fn create_info(env: &Environment, old_location: Coordinate) -> Info {
+        Info {
+            previous_direction: env.previous_direction.unwrap_or(Direction::North) as usize,
+            manhattan_distance: calculate_manhattan_distance(env.current_location, (0,0)),
+            goal_dx: (0,0).0 as i32 - env.current_location.0 as i32,
+            goal_dy: (0,0).1 as i32 - env.current_location.1 as i32,
+            visited_amount: 1.0
+                - *env.visited.get(&env.current_location).unwrap_or(&0) as f64 / 5.0,
+            previous_node: old_location,
+        }
+    }
+}
+
 fn calculate_manhattan_distance(pos1: Coordinate, pos2: Coordinate) -> usize {
     (pos2.0).abs_diff(pos1.0) + (pos2.1).abs_diff(pos1.1)
 }
@@ -90,8 +103,8 @@ impl Environment {
             reward += 0.5;
         }
 
-        if calculate_manhattan_distance(self.current_location, self.maze.end)
-            < calculate_manhattan_distance(old_location, self.maze.end)
+        if calculate_manhattan_distance(self.current_location, (0,0))
+            < calculate_manhattan_distance(old_location, (0,0))
             && number_visits < 3
         {
             reward += 0.5;
@@ -115,39 +128,17 @@ impl Environment {
             reward -= 10.0;
         }
 
-        if self.current_location == self.maze.end {
+        if self.current_location == (0,0) {
             is_done = true;
             reward += 50.0;
         }
 
         (is_done, is_truncated, reward)
     }
-}
 
-#[pymethods]
-impl Environment {
-    pub fn take_action(&mut self, action: Action) -> ActionResult {
-        let old_location = self.current_location;
-        let old_direction = self.previous_direction;
-        self.move_from_current(&action.direction);
-        let (is_done, is_truncated, reward) =
-            self.calculate_reward_for_solving(old_location, old_direction);
-        if is_done {
-            self.path_followed.push(self.current_location);
-            *self.visited.entry(self.current_location).or_insert(0) += 1;
-        }
-
-        let info = Info {
-            previous_direction: self.previous_direction.unwrap_or(Direction::North) as usize,
-            manhattan_distance: calculate_manhattan_distance(self.current_location, self.maze.end),
-            goal_dx: self.maze.end.0 as i32 - self.current_location.0 as i32,
-            goal_dy: self.maze.end.1 as i32 - self.current_location.1 as i32,
-            visited_amount: 1.0
-                - *self.visited.get(&self.current_location).unwrap_or(&0) as f64 / 5.0,
-            previous_node: old_location,
-        };
-        let available_paths = self.available_paths();
-        let visited_paths: HashMap<Direction, f64> = available_paths
+    fn calculate_visited_paths(&self) -> HashMap<Direction, f64> {
+        self
+            .available_paths()
             .iter()
             .map(|(d, steps)| {
                 (
@@ -164,19 +155,35 @@ impl Environment {
                         / 5.0,
                 )
             })
-            .collect();
+            .collect()
+    }
+}
+
+#[pymethods]
+impl Environment {
+    pub fn take_action(&mut self, action: Action) -> ActionResult {
+        let old_location = self.current_location;
+        let old_direction = self.previous_direction;
+        self.move_from_current(&action.direction);
+        let (is_done, is_truncated, reward) =
+            self.calculate_reward_for_solving(old_location, old_direction);
+        if is_done {
+            self.path_followed.push(self.current_location);
+            *self.visited.entry(self.current_location).or_insert(0) += 1;
+        }
+
         let observation = Observation {
             available_paths: self.available_paths(),
-            visited_paths,
+            visited_paths: self.calculate_visited_paths(),
             current_location: self.current_location,
-            end_node: self.maze.end,
+            end_node: (0,0),
         };
         ActionResult {
             observation,
             reward,
             is_done,
             is_truncated,
-            info,
+            info: Info::create_info(&self, old_location),
         }
     }
 
@@ -188,44 +195,14 @@ impl Environment {
         ActionResult {
             observation: Observation {
                 available_paths: self.available_paths(),
-                visited_paths: self
-                    .available_paths()
-                    .iter()
-                    .map(|(d, steps)| {
-                        (
-                            *d,
-                            1.0 - *self
-                                .visited
-                                .get(
-                                    &self
-                                        .maze
-                                        .move_from(&*d, &self.current_location, *steps)
-                                        .unwrap(),
-                                )
-                                .unwrap_or(&0) as f64
-                                / 5.0,
-                        )
-                    })
-                    .collect(),
+                visited_paths: self.calculate_visited_paths(),
                 current_location: self.current_location,
-                end_node: self.maze.end,
+                end_node: (0,0),
             },
             is_done: false,
             is_truncated: false,
             reward: 0.0,
-
-            info: Info {
-                previous_direction: self.previous_direction.unwrap_or(Direction::North) as usize,
-                manhattan_distance: calculate_manhattan_distance(
-                    self.current_location,
-                    self.maze.end,
-                ),
-                goal_dx: self.maze.end.0 as i32 - self.current_location.0 as i32,
-                goal_dy: self.maze.end.1 as i32 - self.current_location.1 as i32,
-                visited_amount: 1.0
-                    - *self.visited.get(&self.current_location).unwrap_or(&0) as f64 / 5.0,
-                previous_node: (0, 0),
-            },
+            info: Info::create_info(&self, (0, 0)),
         }
     }
 

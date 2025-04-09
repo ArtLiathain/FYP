@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::{direction::Direction, maze::maze::Maze};
 
 pub fn all_tiles_reachable(maze: &Maze) -> bool {
-    let mut stack = vec![maze.get_end_point()]; // Stack for DFS
+    let mut stack = vec![*maze.end.iter().next().unwrap()]; // Stack for DFS
     let mut visited = HashSet::new(); // Track visited cells
     while let Some(current) = stack.pop() {
         if visited.contains(&current) {

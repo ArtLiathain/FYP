@@ -4,7 +4,6 @@ pub mod environment {
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
     pub type Coordinate = (usize, usize);
-    use crate::maze_gen::maze_gen::init_maze;
 
     #[cfg_attr(feature = "python", pyo3::pyclass)]
     #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -23,7 +22,7 @@ pub mod environment {
 
     impl Environment {
         pub fn new(env_config: EnvConfig) -> Environment {
-            let maze = init_maze(env_config.maze_width, env_config.maze_height);
+            let maze = Maze::init_maze(env_config.maze_width, env_config.maze_height);
             Environment {
                 current_location: maze.start,
                 path_followed: Vec::new(),

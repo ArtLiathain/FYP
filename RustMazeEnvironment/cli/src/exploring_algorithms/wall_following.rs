@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 
-use maze_library::{direction::Direction, environment::environment::Environment};
+use maze_library::{direction::Direction, environment::environment::{Coordinate, Environment}};
 
-pub fn follow_wall_explore(env: &mut Environment) {
+pub fn follow_wall_explore(env: &mut Environment, end : Coordinate) {
     let start = env.maze.start;
-    let end = env.maze.end;
     let mut has_not_reached_end = true;
     while env.current_location != start || has_not_reached_end {
         if env.current_location == end {

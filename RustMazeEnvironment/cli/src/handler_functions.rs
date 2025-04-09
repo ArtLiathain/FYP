@@ -5,8 +5,7 @@ use std::{
 
 use maze_library::{
     environment::environment::Environment,
-    environment_config::EnvConfig,
-    maze_gen::maze_gen::{random_kruzkals_maze, random_wilson_maze},
+    environment_config::EnvConfig, maze_gen::{kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
 };
 use rand::{rng, seq::IteratorRandom};
 use strum::IntoEnumIterator;
@@ -72,22 +71,22 @@ pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -
 pub fn explore_maze(environment: &mut Environment, algorithm: &ExploreAlgorithm) {
     match algorithm {
         ExploreAlgorithm::WallFollowing => {
-            follow_wall_explore(environment);
+            follow_wall_explore(environment, *environment.maze.end.iter().next().unwrap());
         }
         ExploreAlgorithm::Random => {
-            follow_wall_explore(environment);
+            follow_wall_explore(environment, *environment.maze.end.iter().next().unwrap());
         }
     };
     environment.weighted_graph = environment
         .maze
-        .convert_to_weighted_graph_visited_only(&environment.visited);
+        .convert_to_weighted_graph(Some(&environment.visited));
 }
 
 pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
     let maze = &environment.maze;
     let path = match algorithm {
-        SolveAlgorithm::Dfs => solve_maze_dfs(environment),
-        SolveAlgorithm::Dijkstra => dijkstra_solve(&environment, maze.start, maze.end),
+        SolveAlgorithm::Dfs => solve_maze_dfs(environment, *environment.maze.end.iter().next().unwrap()),
+        SolveAlgorithm::Dijkstra => dijkstra_solve(&environment, maze.start, *environment.maze.end.iter().next().unwrap()),
     };
     environment.path_followed.extend(path);
 }

@@ -14,10 +14,7 @@ use clap::{Parser, ValueEnum};
 use log::info;
 use macroquad::window::{next_frame, Conf};
 use maze_library::{
-    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH},
-    environment::environment::Environment,
-    maze_gen::maze_gen::break_random_walls,
-    render::render::{draw_maze, render_mazes},
+    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, maze::maze::Maze, render::render::{draw_maze, render_mazes}
 };
 
 fn window_conf() -> Conf {
@@ -73,7 +70,7 @@ fn main() {
             let mut environments = generate_environment_list(&gen_algotithm, width, length, count);
 
             for mut environment in environments.iter_mut() {
-                environment.weighted_graph = environment.maze.convert_to_weighted_graph();
+                environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
                 explore_maze(&mut environment, &explore_algoithm);
                 println!("explored");
                 solve_maze(&mut environment, &solve_algoithm);
@@ -117,7 +114,7 @@ fn main() {
                 Ok(env) => environment = env,
                 Err(_) => {
                     environment = generate_environment(&gen_algotithm, width, length);
-                    let extra_walls = break_random_walls(&mut environment.maze, 40);
+                    let extra_walls = environment.maze.break_random_walls(40);
                     environment.maze.break_walls_for_path(extra_walls);
                 }
             }

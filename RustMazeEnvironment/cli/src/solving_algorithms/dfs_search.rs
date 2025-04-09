@@ -5,13 +5,12 @@ use std::{
 
 use maze_library::environment::environment::{Coordinate, Environment};
 
-pub fn solve_maze_dfs(env: &Environment) -> Vec<Coordinate> {
+pub fn solve_maze_dfs(env: &Environment, end : Coordinate) -> Vec<Coordinate> {
     let mut stack: Vec<((usize, usize), usize)> = vec![(env.maze.get_starting_point(), 0)]; // Stack for DFS
     let mut visited = HashSet::new(); // Track visited cells
     let mut path = vec![]; // Final path to the goal
     let mut step = 0;
-    let end = env.maze.get_end_point();
-    let weighted_graph = env.maze.convert_to_weighted_graph();
+    let weighted_graph = env.maze.convert_to_weighted_graph(None);
     while let Some(current) = stack.pop() {
         if visited.contains(&current.0) {
             continue;

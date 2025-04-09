@@ -62,7 +62,7 @@ pub mod render {
             draw_rectangle(x, y, cell_size, cell_size, LIGHTGRAY);
         }
 
-        if coordinates == environment.maze.end {
+        if environment.maze.end.contains(&coordinates) {
             draw_rectangle(x, y, cell_size, cell_size, GOLD); // Change RED to any color you prefer
         }
 
