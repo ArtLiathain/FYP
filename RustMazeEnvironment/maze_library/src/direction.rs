@@ -3,6 +3,8 @@ use std::fmt;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
+use crate::environment::environment::Coordinate;
+
 #[repr(usize)]
 #[cfg_attr(feature = "python", pyo3::pyclass(eq, eq_int))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -24,6 +26,19 @@ impl fmt::Display for Direction {
         write!(f, "{}", direction_str)
     }
 }
+
+pub fn direction_between(from: Coordinate, to: Coordinate) -> Option<Direction> {
+    let dx = to.0  as i32- from.0 as i32;
+    let dy = to.1  as i32- from.1 as i32;
+    match (dx, dy) {
+        (0, d) if d > 0 => Some(Direction::South),
+        (0, d) if d < 0 => Some(Direction::North),
+        (d, 0) if d > 0 => Some(Direction::East),
+        (d, 0) if d < 0 => Some(Direction::West),
+        _ => None, // not adjacent or diagonal movement
+    }
+}
+
 #[cfg_attr(feature = "python", pyo3::pymethods)]
 impl Direction {
     pub fn __hash__(&self) -> u64 {
@@ -48,6 +63,8 @@ impl Direction {
         ];
         direction_array[(*prev_direction as usize + *self as usize) % 4]
     }
+
+    
 
     pub fn turn_amount(&self, prev_direction: &Direction) -> usize {
         (*prev_direction as i32 - *self as i32).abs() as usize

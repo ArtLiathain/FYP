@@ -115,6 +115,10 @@ pub mod maze {
             }
         }
 
+        pub fn get_cell(&self, coord: Coordinate) -> &Cell {
+            &self.grid[coord.0][coord.1]
+        }
+
         pub fn move_from_with_walls(
             &self,
             direction: &Direction,
@@ -149,10 +153,17 @@ pub mod maze {
             self.break_end_walls();
         }
 
+        pub fn get_perfect_end_centre(&self) -> (f32, f32) {
+            (
+                self.width as f32 / 2.0 - 0.5,
+                self.height as f32 / 2.0 - 0.5,
+            )
+        }
+
         pub fn break_end_walls(&mut self) {
             for &(x, y) in self.end.iter() {
                 let current = (x, y);
-    
+
                 // Check each cardinal direction
                 for dir in [
                     Direction::North,
@@ -222,7 +233,7 @@ pub mod maze {
                         (true, false) => &vec![Direction::East],                  // Only East
                         _ => &vec![],                                             // No valid moves
                     };
-    
+
                     edge_set.extend(
                         self.grid[x][y]
                             .walls
@@ -232,8 +243,20 @@ pub mod maze {
                     );
                 }
             }
-            for _ in 0..amount {
-                walls_to_break.push(edge_set.remove(rand::rng().random_range(0..edge_set.len())));
+
+            while walls_to_break.len() < amount {
+                let set_to_remove = edge_set.remove(rand::rng().random_range(0..edge_set.len()));
+                let moved_coordinates = &self
+                    .move_from(&set_to_remove.1, &set_to_remove.0, 1)
+                    .unwrap();
+                if self.end.contains(&set_to_remove.0)
+                    || self.end.contains(moved_coordinates)
+                    || self.get_cell(set_to_remove.0).walls.len() < 2
+                    || self.get_cell(*moved_coordinates).walls.len() < 2
+                {
+                    continue;
+                }
+                walls_to_break.push(set_to_remove);
             }
             walls_to_break
         }

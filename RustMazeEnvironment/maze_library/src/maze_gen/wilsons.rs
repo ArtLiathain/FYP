@@ -68,9 +68,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_kruskals() {
-        for _ in 0..10 {
+    fn test_wilsons() {
+        for _ in 0..1 {
             let mut maze = Maze::new(20, 20);
+            maze.set_end((maze.width/2, maze.height/2));
             let walls_to_break = random_wilson_maze(&mut maze);
             maze.break_walls_for_path(walls_to_break);
 

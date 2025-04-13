@@ -14,7 +14,10 @@ use clap::{Parser, ValueEnum};
 use log::info;
 use macroquad::window::{next_frame, Conf};
 use maze_library::{
-    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, maze::maze::Maze, render::render::{draw_maze, render_mazes}
+    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH},
+    environment::environment::Environment,
+    maze::maze::Maze,
+    render::render::{draw_maze, render_mazes},
 };
 
 fn window_conf() -> Conf {
@@ -36,6 +39,7 @@ pub enum MazeType {
 #[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
 pub enum ExploreAlgorithm {
     WallFollowing,
+    None,
     Random,
 }
 #[derive(ValueEnum, Clone, Debug)]
@@ -57,6 +61,7 @@ fn main() {
             count,
             width,
             length,
+            removed_walls,
         } => {
             info!("Starting maze solving process...");
             info!(
@@ -67,14 +72,12 @@ fn main() {
                 "Maze count: {}, Width: {}, Height: {}",
                 count, width, length
             );
-            let mut environments = generate_environment_list(&gen_algotithm, width, length, count);
+            let mut environments = generate_environment_list(&gen_algotithm, width, length, count, removed_walls);
 
             for mut environment in environments.iter_mut() {
                 environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
                 explore_maze(&mut environment, &explore_algoithm);
-                println!("explored");
                 solve_maze(&mut environment, &solve_algoithm);
-                println!("solved");
             }
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
@@ -113,9 +116,7 @@ fn main() {
             match read_environment_from_file(&files_location.unwrap_or("".to_string())) {
                 Ok(env) => environment = env,
                 Err(_) => {
-                    environment = generate_environment(&gen_algotithm, width, length);
-                    let extra_walls = environment.maze.break_random_walls(40);
-                    environment.maze.break_walls_for_path(extra_walls);
+                    environment = generate_environment(&gen_algotithm, width, length, 40);
                 }
             }
             let mut environments = vec![environment; count];

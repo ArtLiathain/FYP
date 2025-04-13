@@ -4,8 +4,10 @@ use std::{
 };
 
 use maze_library::{
+    direction::direction_between,
     environment::environment::Environment,
-    environment_config::EnvConfig, maze_gen::{kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
+    environment_config::EnvConfig,
+    maze_gen::{kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
 };
 use rand::{rng, seq::IteratorRandom};
 use strum::IntoEnumIterator;
@@ -40,15 +42,16 @@ pub fn generate_environment_list(
     width: usize,
     height: usize,
     count: usize,
+    removed_walls : usize
 ) -> Vec<Environment> {
     let mut environments = vec![];
     for _ in 0..count {
-        environments.push(generate_environment(algorithm, width, height));
+        environments.push(generate_environment(algorithm, width, height, removed_walls));
     }
     environments
 }
 
-pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -> Environment {
+pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize, removed_walls : usize) -> Environment {
     let walls;
     let mut env = Environment::new(EnvConfig::new_rust_config(width, height));
     match algorithm {
@@ -61,10 +64,12 @@ pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize) -
                 .choose(&mut rng)
                 .unwrap();
 
-            return generate_environment(new_algorithm, width, height);
+            return generate_environment(new_algorithm, width, height, removed_walls);
         }
     }
     env.maze.break_walls_for_path(walls);
+    let extra_walls = env.maze.break_random_walls(removed_walls);
+    env.maze.break_walls_for_path(extra_walls);
     env
 }
 
@@ -76,6 +81,10 @@ pub fn explore_maze(environment: &mut Environment, algorithm: &ExploreAlgorithm)
         ExploreAlgorithm::Random => {
             follow_wall_explore(environment, *environment.maze.end.iter().next().unwrap());
         }
+        ExploreAlgorithm::None => {
+            environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
+            return;
+        }
     };
     environment.weighted_graph = environment
         .maze
@@ -85,8 +94,18 @@ pub fn explore_maze(environment: &mut Environment, algorithm: &ExploreAlgorithm)
 pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
     let maze = &environment.maze;
     let path = match algorithm {
-        SolveAlgorithm::Dfs => solve_maze_dfs(environment, *environment.maze.end.iter().next().unwrap()),
-        SolveAlgorithm::Dijkstra => dijkstra_solve(&environment, maze.start, *environment.maze.end.iter().next().unwrap()),
+        SolveAlgorithm::Dfs => {
+            solve_maze_dfs(environment, *environment.maze.end.iter().next().unwrap())
+        }
+        SolveAlgorithm::Dijkstra => dijkstra_solve(
+            &environment,
+            maze.start,
+            *environment.maze.end.iter().next().unwrap(),
+        ),
     };
-    environment.path_followed.extend(path);
+    let current_run = environment.get_current_run() + 1;
+    for index in 1..path.len() {
+        let direction = direction_between(path[index - 1], path[index]).unwrap();
+        environment.move_from_current(&direction, current_run);
+    }
 }

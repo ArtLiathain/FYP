@@ -7,7 +7,12 @@ pub mod python_bindings {
     };
 
     use crate::{
-        direction::Direction, environment::environment::Environment, environment_config::{EnvConfig, PythonConfig}, maze::maze::Maze, maze_gen::{kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze}, python_bindings::environment_bindings::{Action, ActionResult, Info}
+        direction::Direction,
+        environment::environment::Environment,
+        environment_config::{EnvConfig, PythonConfig},
+        maze::maze::Maze,
+        maze_gen::{kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
+        python_bindings::environment_bindings::{Action, ActionResult, Info},
     };
 
     #[pyfunction]
@@ -22,9 +27,9 @@ pub mod python_bindings {
     }
 
     #[pyfunction]
-    #[pyo3(signature=(direction))]
-    fn create_action(direction: Direction) -> PyResult<Action> {
-        Ok(Action { direction })
+    #[pyo3(signature=(direction, run))]
+    fn create_action(direction: Direction, run: usize) -> PyResult<Action> {
+        Ok(Action { direction, run })
     }
 
     #[pyfunction]
@@ -45,7 +50,7 @@ pub mod python_bindings {
     }
     #[pyfunction]
     fn make_maze_imperfect(environment: &mut Environment) -> PyResult<()> {
-        let walls_to_break = Maze::break_random_walls(&mut environment.maze, 15);
+        let walls_to_break = environment.maze.break_random_walls(15);
         environment.maze.break_walls_for_path(walls_to_break);
         environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
         Ok(())

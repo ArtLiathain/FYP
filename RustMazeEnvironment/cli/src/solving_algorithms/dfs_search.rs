@@ -10,7 +10,7 @@ pub fn solve_maze_dfs(env: &Environment, end : Coordinate) -> Vec<Coordinate> {
     let mut visited = HashSet::new(); // Track visited cells
     let mut path = vec![]; // Final path to the goal
     let mut step = 0;
-    let weighted_graph = env.maze.convert_to_weighted_graph(None);
+    let weighted_graph = &env.weighted_graph;
     while let Some(current) = stack.pop() {
         if visited.contains(&current.0) {
             continue;

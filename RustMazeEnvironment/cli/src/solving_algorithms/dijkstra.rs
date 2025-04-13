@@ -13,12 +13,11 @@ pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> 
     let mut path_map: HashMap<Coordinate, (usize, Coordinate)> = HashMap::new();
     let mut visited = HashSet::new(); // Track visited cells
     let weighted_graph = &env.weighted_graph;
-    let env_visited = &env.visited;
     path_map.insert(start, (0, start));
     main_stack.push(Reverse((0, start))); // Push starting point
 
     while let Some(Reverse((distance, current))) = main_stack.pop() {
-        if visited.contains(&current) || !env_visited.contains_key(&current) {
+        if visited.contains(&current) {
             continue;
         }
 
@@ -46,7 +45,6 @@ pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> 
             }
         }
     }
-
     let mut head = end;
     let mut path_followed = vec![];
     while head != start {

@@ -37,7 +37,9 @@ pub fn random_kruzkals_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
                 continue;
             }
         };
-        if maze.end.contains(&random_edge.0) || maze.end.contains(&new_cell) {
+        let r1 = maze.end.contains(&random_edge.0);
+        let nc = maze.end.contains(&new_cell);
+        if (r1 && !nc) || (nc && !r1) {
             if end_visited {
                 edge_set.remove(&random_edge);
                 continue;
@@ -68,9 +70,9 @@ mod tests {
     fn test_kruskals() {
         for _ in 0..10 {
             let mut maze = Maze::new(20, 20);
+            maze.set_end((maze.width/2, maze.height/2));
             let walls_to_break = random_kruzkals_maze(&mut maze);
             maze.break_walls_for_path(walls_to_break);
-
             assert!(all_tiles_reachable(&maze));
         }
     }

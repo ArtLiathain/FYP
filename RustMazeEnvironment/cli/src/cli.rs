@@ -35,6 +35,10 @@ pub enum Commands {
         /// Heigh of maze
         #[arg(short, long, default_value_t = 20)]
         length: usize,
+
+        /// additional walls to remove
+        #[arg(short, long, default_value_t = 0)]
+        removed_walls: usize,
     },
 
     /// Display a maze with given parameters

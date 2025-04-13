@@ -5,6 +5,7 @@ use maze_library::{direction::Direction, environment::environment::{Coordinate, 
 pub fn follow_wall_explore(env: &mut Environment, end : Coordinate) {
     let start = env.maze.start;
     let mut has_not_reached_end = true;
+    let run = env.get_current_run() + 1;
     while env.current_location != start || has_not_reached_end {
         if env.current_location == end {
             has_not_reached_end = false;
@@ -15,7 +16,7 @@ pub fn follow_wall_explore(env: &mut Environment, end : Coordinate) {
             directions.remove(&env.previous_direction.unwrap().opposite_direction());
         }
         if directions.len() == 0 {
-            env.move_from_current(&env.previous_direction.unwrap().opposite_direction());
+            env.move_from_current(&env.previous_direction.unwrap().opposite_direction(), run);
             continue;
         }
         for direction in [
@@ -27,7 +28,7 @@ pub fn follow_wall_explore(env: &mut Environment, end : Coordinate) {
             let dir =
                 direction.relative_direction(&env.previous_direction.unwrap_or(Direction::North));
             if directions.contains(&dir) {
-                env.move_from_current(&dir);
+                env.move_from_current(&dir, run);
                 break;
             }
         }

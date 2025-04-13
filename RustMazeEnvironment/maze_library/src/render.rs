@@ -3,7 +3,7 @@ pub mod render {
     use crate::direction::Direction;
     use crate::environment::environment::{Coordinate, Environment};
     use crate::maze::maze::Cell;
-    use macroquad::color::{BLACK, GOLD, GREEN, LIGHTGRAY, RED, WHITE};
+    use macroquad::color::{BLACK, DARKGRAY, GOLD, GREEN, LIGHTGRAY, PINK, RED, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
     use std::cmp::min;
@@ -20,6 +20,20 @@ pub mod render {
         y_offset: f32,
     ) {
         let base_offset = 10.0;
+        let current_run = environment.get_current_run();
+        let mut path_visited = HashSet::new();
+        let path_start_index = environment
+            .path_followed
+            .iter()
+            .enumerate()
+            .find(|(_, (_, run))| *run == current_run)
+            .map(|(index, _)| index)
+            .unwrap();
+        if step > path_start_index {
+            for i in 0..(step - path_start_index) {
+                path_visited.insert(environment.path_followed[i + path_start_index].0);
+            }
+        }
         for row in &environment.maze.grid {
             for cell in row {
                 draw_cell(
@@ -29,6 +43,7 @@ pub mod render {
                     environment,
                     visited,
                     step,
+                    &path_visited,
                     x_offset,
                     y_offset,
                 )
@@ -44,6 +59,7 @@ pub mod render {
         environment: &Environment,
         visited: &HashSet<Coordinate>,
         step: usize,
+        path: &HashSet<Coordinate>,
         x_offset: f32,
         y_offset: f32,
     ) {
@@ -70,7 +86,12 @@ pub mod render {
             draw_rectangle(x, y, cell_size, cell_size, GREEN);
         }
 
-        if environment.path_followed[step] == coordinates {
+        if path.contains(&coordinates) {
+            draw_rectangle(x, y, cell_size, cell_size, PINK);
+
+        }
+
+        if environment.path_followed[step].0 == coordinates {
             draw_rectangle(x, y, cell_size, cell_size, RED);
         }
         // Draw the cell walls based on its directions
@@ -180,7 +201,7 @@ pub mod render {
                         )
                         .await;
                         visited_nodes[idx]
-                            .insert(environments[env_index].path_followed[step_to_use]);
+                            .insert(environments[env_index].path_followed[step_to_use].0);
                         screens_displayed += 1;
                         if screens_displayed >= amount_of_screens {
                             break;
@@ -191,9 +212,11 @@ pub mod render {
                     }
                 }
                 next_frame().await;
-                sleep(Duration::from_millis(100));
+                sleep(Duration::from_millis(50));
                 step += 1;
             }
+            sleep(Duration::from_millis(3000));
+
         }
     }
 }
