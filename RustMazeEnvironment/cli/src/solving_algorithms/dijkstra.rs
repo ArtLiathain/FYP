@@ -25,7 +25,7 @@ pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> 
 
         let neighbors: Vec<(Coordinate, usize)> = weighted_graph
             .get(&current)
-            .unwrap()
+            .unwrap_or(&HashMap::new())
             .iter()
             .map(|(direction, &steps)| {
                 (

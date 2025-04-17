@@ -39,7 +39,7 @@ pub struct Observation {
     #[pyo3(get)]
     current_location: Coordinate,
     #[pyo3(get)]
-    end_node: Coordinate,
+    end_node: (f32, f32),
 }
 
 #[pyclass]
@@ -116,27 +116,27 @@ impl Environment {
         if number_visits > 0 {
             reward -= f32::min(0.5, number_visits as f32 * 0.15);
         } else {
-            reward += 1.0;
+            reward += 2.0;
         }
 
         if calculate_manhattan_distance(self.current_location, end)
             < calculate_manhattan_distance(old_location, end)
             && number_visits < 3
         {
-            reward += 1.0;
+            reward += 2.0;
         }
 
         if self.path_followed.len() >= 4 {
             if self.path_followed[self.path_followed.len() - 1]
                 == self.path_followed[self.path_followed.len() - 3]
             {
-                reward -= 0.7; // Penalty for oscillating motion
+                reward -= 1.5; // Penalty for oscillating motion
             }
         }
 
         //Running into a wall essentially
         if self.current_location == old_location {
-            reward -= 1.0;
+            reward -= 2.0;
         }
 
         if number_visits > 5 {
@@ -187,7 +187,7 @@ impl Environment {
             available_paths: paths_divided_by_width_and_height(&self),
             visited_paths: self.calculate_visited_paths(),
             current_location: self.current_location,
-            end_node: (0, 0),
+            end_node: self.maze.get_perfect_end_centre(),
         };
         ActionResult {
             observation,
@@ -208,12 +208,12 @@ impl Environment {
                 available_paths: paths_divided_by_width_and_height(&self),
                 visited_paths: self.calculate_visited_paths(),
                 current_location: self.current_location,
-                end_node: (0, 0),
+                end_node: self.maze.get_perfect_end_centre(),
             },
             is_done: false,
             is_truncated: false,
             reward: 0.0,
-            info: Info::create_info(&self, (0, 0)),
+            info: Info::create_info(&self, self.maze.get_starting_point()),
         }
     }
 
