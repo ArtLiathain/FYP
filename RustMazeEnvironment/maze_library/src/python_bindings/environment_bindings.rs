@@ -146,7 +146,7 @@ impl Environment {
 
         if self.maze.end.contains(&self.current_location) {
             is_done = true;
-            reward += 50.0;
+            reward += 30.0 + 500.0 / self.steps as f32;
         }
 
         (is_done, is_truncated, reward)
