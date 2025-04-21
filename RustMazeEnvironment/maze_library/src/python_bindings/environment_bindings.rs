@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, env};
 
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
@@ -10,8 +10,8 @@ use crate::{
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct Action {
-    pub direction: Direction,
-    pub run : usize
+    pub direction: usize,
+    pub run: usize,
 }
 
 #[pyclass]
@@ -25,68 +25,103 @@ pub struct ActionResult {
     is_done: bool,
     #[pyo3(get)]
     is_truncated: bool,
-    #[pyo3(get)]
-    info: Info,
+}
+
+impl ActionResult {
+    pub fn flatten_and_scale(&self, env: &Environment) -> (Vec<f32>, f32, bool, bool) {
+        (
+            self.observation.flatten_and_scale_observation(&env),
+            self.reward,
+            self.is_done,
+            self.is_truncated,
+        )
+    }
 }
 
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct Observation {
     #[pyo3(get)]
-    available_paths: HashMap<Direction, f32>,
+    available_paths: HashMap<Direction, usize>,
     #[pyo3(get)]
-    visited_paths: HashMap<Direction, f32>,
+    visited_paths: HashMap<Direction, usize>,
     #[pyo3(get)]
     current_location: Coordinate,
     #[pyo3(get)]
-    end_node: (f32, f32),
-}
-
-#[pyclass]
-#[derive(Debug, Clone)]
-pub struct Info {
+    previous_location: Coordinate,
+    #[pyo3(get)]
+    goal_dxdy: (f32, f32),
     #[pyo3(get)]
     previous_direction: usize,
     #[pyo3(get)]
     manhattan_distance: f32,
     #[pyo3(get)]
-    goal_dx: f32,
+    current_visited_amount: usize,
     #[pyo3(get)]
-    goal_dy: f32,
-    #[pyo3(get)]
-    visited_amount: f32,
-    #[pyo3(get)]
-    previous_node: Coordinate,
+    end_node: (f32, f32),
 }
-
-impl Info {
-    pub fn create_info(env: &Environment, old_location: Coordinate) -> Info {
+impl Observation {
+    pub fn new(env: &Environment, previous_location: Coordinate) -> Observation {
         let end = env.maze.get_perfect_end_centre();
-        Info {
+        Observation {
             previous_direction: env.previous_direction.unwrap_or(Direction::North) as usize,
             manhattan_distance: calculate_manhattan_distance(env.current_location, end),
-            goal_dx: (end.0 - env.current_location.0 as f32) / (env.maze.width as f32 / 2.0),
-            goal_dy: (end.1 - env.current_location.1 as f32) / (env.maze.height as f32 / 2.0),
-            visited_amount: 1.0
-                - *env.visited.get(&env.current_location).unwrap_or(&0) as f32
-                    / env.config.python_config.allowed_revisits as f32,
-            previous_node: old_location,
+            goal_dxdy: (
+                end.0 - env.current_location.0 as f32,
+                end.1 - env.current_location.1 as f32,
+            ),
+            current_visited_amount: *env.visited.get(&env.current_location).unwrap_or(&0),
+            available_paths: env.available_paths(),
+            visited_paths: env.calculate_visited_paths(),
+            current_location: env.current_location,
+            end_node: env.maze.get_perfect_end_centre(),
+            previous_location,
         }
     }
-}
 
-fn paths_divided_by_width_and_height(env : &Environment) -> HashMap<Direction, f32> {
-    env.available_paths().iter()
-    .map(|(&dir, &val)| 
-    if [Direction::North, Direction::South].contains(&dir){
-        (dir, val as f32 / env.maze.height as f32)
+    pub fn flatten_and_scale_observation(&self, env: &Environment) -> Vec<f32> {
+        let mut vec = Vec::new();
+        let direction_vec = vec![
+            Direction::North,
+            Direction::East,
+            Direction::South,
+            Direction::West,
+        ];
+        for dir in direction_vec.iter() {
+            let path = self.available_paths.get(&dir).unwrap_or(&0);
+
+            if [Direction::North, Direction::South].contains(&dir) {
+                vec.push(*path as f32 / env.maze.height as f32);
+            } else {
+                vec.push(*path as f32 / env.maze.width as f32);
+            }
+            
+        }
+
+        for dir in direction_vec.iter() {
+            vec.push(
+                1.0 - *self.visited_paths.get(&dir).unwrap_or(&0) as f32
+                    / env.config.python_config.allowed_revisits as f32,
+            );
+        }
+        
+        vec.push(self.previous_direction as f32);
+        vec.push(self.current_location.0 as f32 / (env.maze.width as f32 - 1.0));
+        vec.push(self.current_location.1 as f32 / (env.maze.height as f32 - 1.0));
+        vec.push(self.end_node.0 / (env.maze.width as f32 - 1.0));
+        vec.push(self.end_node.1 / (env.maze.height as f32 - 1.0));
+        vec.push(self.previous_location.0 as f32 / (env.maze.width as f32 - 1.0));
+        vec.push(self.previous_location.1 as f32 / (env.maze.height as f32 - 1.0));
+        vec.push(self.manhattan_distance / (env.maze.width + env.maze.height) as f32);
+        vec.push((self.goal_dxdy.0 / (env.maze.width as f32 / 2.0) + 1.0) / 2.0);
+        vec.push((self.goal_dxdy.1 / (env.maze.height as f32 / 2.0) + 1.0) / 2.0);
+        vec.push(
+            1.0 - self.current_visited_amount as f32
+                / env.config.python_config.allowed_revisits as f32,
+        );
+        vec
     }
-    else {
-        (dir, val as f32 / env.maze.width as f32)
-    }
-)
-    .collect()
-} 
+}
 
 fn calculate_manhattan_distance(pos1: Coordinate, pos2: (f32, f32)) -> f32 {
     (pos1.0 as f32 - pos2.0).abs() + (pos1.1 as f32 - pos2.1).abs()
@@ -121,25 +156,23 @@ impl Environment {
 
         if calculate_manhattan_distance(self.current_location, end)
             < calculate_manhattan_distance(old_location, end)
-            && number_visits < 3
+            && number_visits < 2
         {
             reward += 2.0;
         }
 
         if self.path_followed.len() >= 4 {
-            if self.path_followed[self.path_followed.len() - 1]
-                == self.path_followed[self.path_followed.len() - 3]
-            {
+            if self.current_location == self.path_followed[self.path_followed.len() - 3].0 {
                 reward -= 1.5; // Penalty for oscillating motion
             }
         }
 
         //Running into a wall essentially
         if self.current_location == old_location {
-            reward -= 2.0;
+            reward -= 3.0;
         }
 
-        if number_visits > 5 {
+        if number_visits > self.config.python_config.allowed_revisits {
             is_truncated = true;
             reward -= 10.0;
         }
@@ -152,13 +185,13 @@ impl Environment {
         (is_done, is_truncated, reward)
     }
 
-    fn calculate_visited_paths(&self) -> HashMap<Direction, f32> {
+    fn calculate_visited_paths(&self) -> HashMap<Direction, usize> {
         self.available_paths()
             .iter()
             .map(|(d, steps)| {
                 (
                     *d,
-                    1.0 - *self
+                    *self
                         .visited
                         .get(
                             &self
@@ -166,8 +199,7 @@ impl Environment {
                                 .move_from(&*d, &self.current_location, *steps)
                                 .unwrap(),
                         )
-                        .unwrap_or(&0) as f32
-                        / self.config.python_config.allowed_revisits as f32,
+                        .unwrap_or(&0),
                 )
             })
             .collect()
@@ -176,45 +208,29 @@ impl Environment {
 
 #[pymethods]
 impl Environment {
-    pub fn take_action(&mut self, action: Action) -> ActionResult {
+    pub fn take_action(&mut self, action: Action) -> (Vec<f32>, f32, bool, bool) {
         let old_location = self.current_location;
+        let dir = Direction::from(action.direction);
         let old_direction = self.previous_direction;
-        self.move_from_current(&action.direction, action.run);
+        self.move_from_current(&dir, action.run);
         let (is_done, is_truncated, reward) =
             self.calculate_reward_for_solving(old_location, old_direction);
 
-        let observation = Observation {
-            available_paths: paths_divided_by_width_and_height(&self),
-            visited_paths: self.calculate_visited_paths(),
-            current_location: self.current_location,
-            end_node: self.maze.get_perfect_end_centre(),
-        };
         ActionResult {
-            observation,
+            observation: Observation::new(&self, old_location),
             reward,
             is_done,
             is_truncated,
-            info: Info::create_info(&self, old_location),
         }
+        .flatten_and_scale(&self)
     }
 
-    pub fn reset(&mut self) -> ActionResult {
+    pub fn reset(&mut self) -> Vec<f32> {
         self.path_followed.clear();
         self.current_location = self.maze.start;
         self.visited.clear();
         self.steps = 0;
-        ActionResult {
-            observation: Observation {
-                available_paths: paths_divided_by_width_and_height(&self),
-                visited_paths: self.calculate_visited_paths(),
-                current_location: self.current_location,
-                end_node: self.maze.get_perfect_end_centre(),
-            },
-            is_done: false,
-            is_truncated: false,
-            reward: 0.0,
-            info: Info::create_info(&self, self.maze.get_starting_point()),
-        }
+        Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }
 
     pub fn to_json_python(&self) -> PyResult<String> {

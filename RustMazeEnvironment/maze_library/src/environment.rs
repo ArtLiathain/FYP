@@ -22,6 +22,7 @@ pub mod environment {
         pub visited: HashMap<Coordinate, usize>,
         #[serde(skip)]
         pub weighted_graph: HashMap<Coordinate, HashMap<Direction, usize>>,
+         
     }
 
     pub struct ReportCard {

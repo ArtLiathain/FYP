@@ -10,9 +10,8 @@ pub mod python_bindings {
         direction::Direction,
         environment::environment::Environment,
         environment_config::{EnvConfig, PythonConfig},
-        maze::maze::Maze,
         maze_gen::{kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
-        python_bindings::environment_bindings::{Action, ActionResult, Info},
+        python_bindings::environment_bindings::{Action, ActionResult},
     };
 
     #[pyfunction]
@@ -22,13 +21,13 @@ pub mod python_bindings {
         height: usize,
         allowed_revisits: usize,
     ) -> PyResult<Environment> {
-        let config = EnvConfig::new(width, height, PythonConfig { allowed_revisits });
+        let config: EnvConfig = EnvConfig::new(width, height, PythonConfig { allowed_revisits });
         Ok(Environment::new(config))
     }
 
     #[pyfunction]
     #[pyo3(signature=(direction, run))]
-    fn create_action(direction: Direction, run: usize) -> PyResult<Action> {
+    fn create_action(direction: usize, run: usize) -> PyResult<Action> {
         Ok(Action { direction, run })
     }
 
@@ -77,7 +76,6 @@ pub mod python_bindings {
         m.add_class::<Environment>()?;
         m.add_class::<Action>()?;
         m.add_class::<ActionResult>()?;
-        m.add_class::<Info>()?;
         Ok(())
     }
 }

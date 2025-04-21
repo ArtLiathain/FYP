@@ -15,6 +15,17 @@ pub enum Direction {
     West = 3,
 }
 
+impl From<usize> for Direction {
+    fn from(value: usize) -> Self {
+        match value % 4 {
+            0 => Direction::North,
+            1 => Direction::East,
+            2 => Direction::South,
+            _ => Direction::West, // covers 3 and ensures safety
+        }
+    }
+}
+
 impl fmt::Display for Direction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let direction_str = match self {
