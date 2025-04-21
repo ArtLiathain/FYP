@@ -1,4 +1,4 @@
-use std::{collections::HashSet, env};
+use std::collections::HashSet;
 
 use cli::{Cli, Commands};
 use handler_functions::{
@@ -14,7 +14,7 @@ use clap::{Parser, ValueEnum};
 use log::info;
 use macroquad::window::{next_frame, Conf};
 use maze_library::{
-    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::{self, environment::Environment}, environment_config::{EnvConfig, PythonConfig}, maze::maze::Maze, maze_gen::growing_tree::growing_tree, render::render::{draw_maze, render_mazes}
+    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::{environment::Environment}, render::render::{draw_maze, render_mazes}
 };
 
 fn window_conf() -> Conf {
@@ -110,7 +110,7 @@ fn main() {
             width,
             length,
         } => {
-            let mut environment: Environment;
+            let environment: Environment;
 
             match read_environment_from_file(&files_location.unwrap_or("".to_string())) {
                 Ok(env) => environment = env,

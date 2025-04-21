@@ -3,7 +3,7 @@ pub mod render {
     use crate::direction::Direction;
     use crate::environment::environment::{Coordinate, Environment};
     use crate::maze::maze::Cell;
-    use macroquad::color::{BLACK, DARKGRAY, GOLD, GREEN, LIGHTGRAY, PINK, RED, WHITE};
+    use macroquad::color::{BLACK, GOLD, GREEN, LIGHTGRAY, PINK, RED, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
     use std::cmp::min;
