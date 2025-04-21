@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, env};
 
 use cli::{Cli, Commands};
 use handler_functions::{
@@ -14,10 +14,7 @@ use clap::{Parser, ValueEnum};
 use log::info;
 use macroquad::window::{next_frame, Conf};
 use maze_library::{
-    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH},
-    environment::environment::Environment,
-    maze::maze::Maze,
-    render::render::{draw_maze, render_mazes},
+    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::{self, environment::Environment}, environment_config::{EnvConfig, PythonConfig}, maze::maze::Maze, maze_gen::growing_tree::growing_tree, render::render::{draw_maze, render_mazes}
 };
 
 fn window_conf() -> Conf {
@@ -34,6 +31,7 @@ fn window_conf() -> Conf {
 pub enum MazeType {
     Kruzkals,
     Wilsons,
+    GrowingTree,
     Random,
 }
 #[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
@@ -78,6 +76,7 @@ fn main() {
                 environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
                 explore_maze(&mut environment, &explore_algoithm);
                 solve_maze(&mut environment, &solve_algoithm);
+
             }
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
@@ -134,6 +133,11 @@ fn main() {
         Commands::Test {} => {
             let filename = format!("../mazeLogs/error_0.json");
             let environment = read_environment_from_file(&filename).unwrap();
+            // let config: EnvConfig = EnvConfig::new(10, 10, PythonConfig { allowed_revisits: 5 });
+            // let mut environment = Environment::new(config);
+            // let walls = growing_tree(&environment.maze);
+            // println!("{:?}", walls);
+            // environment.maze.break_walls_for_path(walls);
             macroquad::Window::from_config(window_conf(), async move {
                 loop {
                     draw_maze(&environment, cell_size, &HashSet::new(), 0, 0.0, 0.0).await;

@@ -7,7 +7,7 @@ use maze_library::{
     direction::direction_between,
     environment::environment::Environment,
     environment_config::EnvConfig,
-    maze_gen::{kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
+    maze_gen::{growing_tree::growing_tree, kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
 };
 use rand::{rng, seq::IteratorRandom};
 use strum::IntoEnumIterator;
@@ -57,6 +57,7 @@ pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize, r
     match algorithm {
         MazeType::Wilsons => walls = random_wilson_maze(&env.maze),
         MazeType::Kruzkals => walls = random_kruzkals_maze(&env.maze),
+        MazeType::GrowingTree => walls = growing_tree(&env.maze, &|list| list.last().unwrap()),
         MazeType::Random => {
             let mut rng = rng();
             let new_algorithm = &MazeType::iter()
