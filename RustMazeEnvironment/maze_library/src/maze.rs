@@ -264,6 +264,7 @@ pub mod maze {
         pub fn convert_to_weighted_graph(
             &self,
             visited: Option<&HashMap<Coordinate, usize>>,
+            skip_non_decision_nodes: bool
         ) -> HashMap<Coordinate, HashMap<Direction, usize>> {
             let mut decision_nodes: HashMap<Coordinate, HashMap<Direction, usize>> = HashMap::new();
             let mut decision_set: HashSet<Coordinate> = HashSet::new();
@@ -284,6 +285,11 @@ pub mod maze {
                         continue;
                     }
                     let cell = &self.grid[row][column];
+                    if !skip_non_decision_nodes {
+                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
+                        decision_set.insert((cell.x, cell.y));
+                        continue;
+                    }
                     let walls: Vec<&Direction> = cell.walls.iter().collect();
                     if walls.len() <= 1 || walls.len() == 3 {
                         decision_nodes.insert((cell.x, cell.y), HashMap::new());

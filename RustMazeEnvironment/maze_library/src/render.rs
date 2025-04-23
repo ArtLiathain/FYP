@@ -3,11 +3,12 @@ pub mod render {
     use crate::direction::Direction;
     use crate::environment::environment::{Coordinate, Environment};
     use crate::maze::maze::Cell;
-    use macroquad::color::{BLACK, GOLD, GREEN, LIGHTGRAY, PINK, RED, WHITE};
+    use macroquad::color::{Color, BLACK, DARKGRAY, DARKPURPLE, GOLD, GREEN, LIGHTGRAY, LIME, PINK, RED, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
+    use rand::{rng, Rng};
     use std::cmp::min;
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -52,6 +53,128 @@ pub mod render {
         }
     }
 
+    pub async fn draw_coloured_maze(
+        environment: &Environment,
+        cell_size: f32,
+        x_offset: f32,
+        y_offset: f32,
+        path_map: &HashMap<Coordinate, (usize, Coordinate)>,
+    ) {
+        let base_offset = 10.0;
+        let base_colour = random_base_color();
+        let max_steps = path_map.values().map(|(steps, _)| *steps).max().unwrap_or(100);
+        for row in &environment.maze.grid {
+            for cell in row {
+                draw_cell_coloured(
+                    cell,
+                    cell_size,
+                    base_offset,
+                    x_offset,
+                    y_offset,
+                    path_map,
+                    max_steps,
+                    base_colour,
+                    environment
+                )
+                .await;
+            }
+        }
+    }
+
+    fn random_base_color() -> Color {
+        let mut rng = rng();
+        let hue: f32 = rng.random_range(0.0..360.0);
+        let (r, g, b) = hsv_to_rgb(hue, 1.0, 1.0);
+        Color::new(r, g, b, 1.0)
+    }
+    
+    // Convert HSV to RGB
+    fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
+        let c = v * s;
+        let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
+        let m = v - c;
+    
+        let (r1, g1, b1) = match h {
+            h if (0.0..60.0).contains(&h) => (c, x, 0.0),
+            h if (60.0..120.0).contains(&h) => (x, c, 0.0),
+            h if (120.0..180.0).contains(&h) => (0.0, c, x),
+            h if (180.0..240.0).contains(&h) => (0.0, x, c),
+            h if (240.0..300.0).contains(&h) => (x, 0.0, c),
+            _ => (c, 0.0, x),
+        };
+    
+        (r1 + m, g1 + m, b1 + m)
+    }
+
+    async fn draw_cell_coloured(
+        cell: &Cell,
+        cell_size: f32,
+        offset: f32,
+        x_offset: f32,
+        y_offset: f32,
+        path_map: &HashMap<Coordinate, (usize, Coordinate)>,
+        max_steps: usize,
+        random_colour: Color,
+        environment: &Environment
+    ) {
+        let x = cell.x as f32 * cell_size + offset + x_offset;
+        let y = cell.y as f32 * cell_size + offset + y_offset;
+        let coordinates = (cell.x, cell.y);
+        let base_color = if let Some((steps, _)) = path_map.get(&coordinates) {
+            // Clamp steps to a maximum for color normalization
+            let normalized = (*steps as f32 / max_steps as f32).min(1.0);
+            let brightness = 1.0 - normalized;
+            Color::new(random_colour.r * brightness, random_colour.g * brightness,random_colour.b *  brightness, 1.0)
+        } else {
+            random_colour
+        };
+        if cell.walls.len() == 4 {
+            draw_rectangle(x, y, cell_size, cell_size, BLACK);
+        } else {
+            draw_rectangle(x, y, cell_size, cell_size, base_color);
+        }
+
+        if environment.maze.end.contains(&coordinates) {
+            draw_rectangle(x, y, cell_size, cell_size, DARKPURPLE); // Change RED to any color you prefer
+        }
+
+        if coordinates == environment.maze.start {
+            draw_rectangle(x, y, cell_size, cell_size, DARKPURPLE);
+        }
+
+        draw_cell_walls(cell, cell_size, x, y, 1.0);
+
+    }
+
+    fn draw_cell_walls(cell: &Cell, cell_size: f32, x: f32, y: f32, thickness: f32) {
+        if cell.walls.contains(&Direction::North) {
+            draw_line(x, y, x + cell_size, y, thickness, DARKGRAY);
+        }
+        if cell.walls.contains(&Direction::East) {
+            draw_line(
+                x + cell_size,
+                y,
+                x + cell_size,
+                y + cell_size,
+                thickness,
+                DARKGRAY,
+            );
+        }
+        if cell.walls.contains(&Direction::South) {
+            draw_line(
+                x,
+                y + cell_size,
+                x + cell_size,
+                y + cell_size,
+                thickness,
+                DARKGRAY,
+            );
+        }
+        if cell.walls.contains(&Direction::West) {
+            draw_line(x, y, x, y + cell_size, thickness, DARKGRAY);
+        }
+    }
+
     pub async fn draw_cell(
         cell: &Cell,
         cell_size: f32,
@@ -66,7 +189,6 @@ pub mod render {
         let x = cell.x as f32 * cell_size + offset + x_offset;
         let y = cell.y as f32 * cell_size + offset + y_offset;
         let coordinates = (cell.x, cell.y);
-        let thickness = 1.0;
 
         if cell.walls.len() == 4 {
             draw_rectangle(x, y, cell_size, cell_size, BLACK);
@@ -88,39 +210,13 @@ pub mod render {
 
         if path.contains(&coordinates) {
             draw_rectangle(x, y, cell_size, cell_size, PINK);
-
         }
 
         if environment.path_followed[step].0 == coordinates {
             draw_rectangle(x, y, cell_size, cell_size, RED);
         }
         // Draw the cell walls based on its directions
-        if cell.walls.contains(&Direction::North) {
-            draw_line(x, y, x + cell_size, y, thickness, BLACK);
-        }
-        if cell.walls.contains(&Direction::East) {
-            draw_line(
-                x + cell_size,
-                y,
-                x + cell_size,
-                y + cell_size,
-                thickness,
-                BLACK,
-            );
-        }
-        if cell.walls.contains(&Direction::South) {
-            draw_line(
-                x,
-                y + cell_size,
-                x + cell_size,
-                y + cell_size,
-                thickness,
-                BLACK,
-            );
-        }
-        if cell.walls.contains(&Direction::West) {
-            draw_line(x, y, x, y + cell_size, thickness, BLACK);
-        }
+        draw_cell_walls(cell, cell_size, x, y, 1.0);
     }
 
     pub async fn render_maze(
@@ -216,7 +312,6 @@ pub mod render {
                 step += 1;
             }
             sleep(Duration::from_millis(3000));
-
         }
     }
 }

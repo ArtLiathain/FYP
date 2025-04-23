@@ -83,13 +83,13 @@ pub fn explore_maze(environment: &mut Environment, algorithm: &ExploreAlgorithm)
             follow_wall_explore(environment, *environment.maze.end.iter().next().unwrap());
         }
         ExploreAlgorithm::None => {
-            environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
+            environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, true);
             return;
         }
     };
     environment.weighted_graph = environment
         .maze
-        .convert_to_weighted_graph(Some(&environment.visited));
+        .convert_to_weighted_graph(Some(&environment.visited), true);
 }
 
 pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {

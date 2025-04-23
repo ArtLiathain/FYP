@@ -9,6 +9,30 @@ use maze_library::{
 };
 
 pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> Vec<Coordinate> {
+    let path_map = dijkstra_graph(env, start);
+
+    let mut head = end;
+    let mut path_followed = vec![];
+    while head != start {
+        if let Some((_, temp)) = path_map.get(&head) {
+            path_followed.push(head);
+            head = *temp;
+        } else {
+            panic!(
+                "Failed to reconstruct the path: Node {:?} is unreachable.",
+                head
+            );
+        }
+    }
+    path_followed.push(start);
+    path_followed.reverse();
+    path_followed
+}
+
+pub fn dijkstra_graph(
+    env: &Environment,
+    start: Coordinate,
+) -> HashMap<Coordinate, (usize, Coordinate)> {
     let mut main_stack = BinaryHeap::new(); // Priority queue
     let mut path_map: HashMap<Coordinate, (usize, Coordinate)> = HashMap::new();
     let mut visited = HashSet::new(); // Track visited cells
@@ -45,20 +69,5 @@ pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> 
             }
         }
     }
-    let mut head = end;
-    let mut path_followed = vec![];
-    while head != start {
-        if let Some((_, temp)) = path_map.get(&head) {
-            path_followed.push(head);
-            head = *temp;
-        } else {
-            panic!(
-                "Failed to reconstruct the path: Node {:?} is unreachable.",
-                head
-            );
-        }
-    }
-    path_followed.push(start);
-    path_followed.reverse();
-    path_followed
+    path_map
 }

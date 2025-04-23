@@ -44,14 +44,14 @@ pub mod python_bindings {
         environment
             .maze
             .break_walls_for_path(walls_to_break_for_maze);
-        environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
+        environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, true);
         Ok(())
     }
     #[pyfunction]
     fn make_maze_imperfect(environment: &mut Environment) -> PyResult<()> {
         let walls_to_break = environment.maze.break_random_walls(15);
         environment.maze.break_walls_for_path(walls_to_break);
-        environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
+        environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, true);
         Ok(())
     }
     #[pyfunction]
@@ -60,7 +60,7 @@ pub mod python_bindings {
         environment
             .maze
             .break_walls_for_path(walls_to_break_for_maze);
-        environment.weighted_graph = environment.maze.convert_to_weighted_graph(None);
+        environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, true);
         Ok(())
     }
 
