@@ -22,7 +22,6 @@ pub mod environment {
         pub visited: HashMap<Coordinate, usize>,
         #[serde(skip)]
         pub weighted_graph: HashMap<Coordinate, HashMap<Direction, usize>>,
-         
     }
 
     pub struct ReportCard {
@@ -49,7 +48,7 @@ pub mod environment {
     }
 
     impl Environment {
-        pub fn move_from_current(&mut self, direction: &Direction, run: usize) {
+        pub fn move_from_current(&mut self, direction: &Direction, run: usize) -> usize {
             let steps = self
                 .weighted_graph
                 .get(&self.current_location)
@@ -74,11 +73,13 @@ pub mod environment {
                     *self.visited.entry(new_loc).or_insert(0) += 1;
                     self.previous_direction = Some(*direction);
                     self.current_location = new_loc;
+                    return steps;
                 }
                 Err(_e) => {
                     error!("MOVE ERROR WITH WEIGHTED GRAPH");
                 }
             }
+            0
         }
 
         pub fn available_paths(&self) -> HashMap<Direction, usize> {

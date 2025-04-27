@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use rand::seq::IteratorRandom;
+use rand::{rngs::StdRng, seq::IteratorRandom};
 use union_find::{QuickUnionUf, UnionBySize, UnionFind};
 
 use crate::{direction::Direction, environment::environment::Coordinate, maze::maze::Maze};
@@ -9,11 +9,12 @@ fn unique_coordinate_index(coord: Coordinate, width: usize) -> usize {
     coord.1 * width + coord.0
 }
 
-pub fn random_kruzkals_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
+pub fn random_kruzkals_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Direction)> {
     let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
     let mut edge_set: HashSet<(Coordinate, Direction)> = HashSet::new();
     let mut union_find = QuickUnionUf::<UnionBySize>::new(maze.width * maze.height);
     let mut end_visited = false;
+
     //Put all edges into a burlap sack
     for x in 0..maze.width {
         for y in 0..maze.height {
@@ -26,7 +27,6 @@ pub fn random_kruzkals_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
         }
     }
     while !edge_set.is_empty() {
-        let mut rng = rand::rng();
         let random_edge = match edge_set.iter().choose(&mut rng).cloned() {
             Some(edge) => edge,
             None => break,
@@ -62,6 +62,8 @@ pub fn random_kruzkals_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
 
 #[cfg(test)]
 mod tests {
+    use rand::SeedableRng;
+
     use crate::{maze::maze::Maze, test_utils::all_tiles_reachable::all_tiles_reachable};
 
     use super::*;
@@ -70,8 +72,9 @@ mod tests {
     fn test_kruskals() {
         for _ in 0..10 {
             let mut maze = Maze::new(20, 20);
-            maze.set_end((maze.width/2, maze.height/2));
-            let walls_to_break = random_kruzkals_maze(&mut maze);
+            maze.set_end((maze.width / 2, maze.height / 2));
+            let walls_to_break =
+                random_kruzkals_maze(&mut maze, SeedableRng::from_rng(&mut rand::rng()));
             maze.break_walls_for_path(walls_to_break);
             assert!(all_tiles_reachable(&maze));
         }

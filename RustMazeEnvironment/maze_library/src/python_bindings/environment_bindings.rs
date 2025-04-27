@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
@@ -95,7 +95,6 @@ impl Observation {
             } else {
                 vec.push(*path as f32 / env.maze.width as f32);
             }
-            
         }
 
         for dir in direction_vec.iter() {
@@ -104,7 +103,7 @@ impl Observation {
                     / env.config.python_config.allowed_revisits as f32,
             );
         }
-        
+
         vec.push(self.previous_direction as f32);
         vec.push(self.current_location.0 as f32 / (env.maze.width as f32 - 1.0));
         vec.push(self.current_location.1 as f32 / (env.maze.height as f32 - 1.0));
@@ -135,9 +134,8 @@ impl Environment {
     ) -> (bool, bool, f32) {
         let mut is_done = false;
         let mut is_truncated = false;
-        let mut reward = 0.0;
+        let mut reward = -0.05;
         let end = self.maze.get_perfect_end_centre();
-        //For turnin penalties
         if old_direction.is_some() {
             //This is actually the new direction due to it being caclulated after moving
             let difference = self
@@ -212,13 +210,13 @@ impl Environment {
         let old_location = self.current_location;
         let dir = Direction::from(action.direction);
         let old_direction = self.previous_direction;
-        self.move_from_current(&dir, action.run);
+        let steps_taken = self.move_from_current(&dir, action.run);
         let (is_done, is_truncated, reward) =
             self.calculate_reward_for_solving(old_location, old_direction);
 
         ActionResult {
             observation: Observation::new(&self, old_location),
-            reward,
+            reward: reward * (steps_taken as f32).max(1.0),
             is_done,
             is_truncated,
         }
@@ -226,6 +224,14 @@ impl Environment {
     }
 
     pub fn reset(&mut self) -> Vec<f32> {
+        self.path_followed.clear();
+        self.current_location = self.maze.start;
+        self.visited.clear();
+        self.steps = 0;
+        Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
+    }
+
+    pub fn reset_and_regenerate(&mut self) -> Vec<f32> {
         self.path_followed.clear();
         self.current_location = self.maze.start;
         self.visited.clear();

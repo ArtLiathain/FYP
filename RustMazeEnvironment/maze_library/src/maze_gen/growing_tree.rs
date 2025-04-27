@@ -1,10 +1,14 @@
 use std::collections::HashSet;
 
-use rand::Rng;
+use rand::{rngs::StdRng, Rng};
 
 use crate::{direction::Direction, environment::environment::Coordinate, maze::maze::Maze};
 
-pub fn growing_tree(maze: &Maze, chooser: &dyn Fn(&[Coordinate]) -> &Coordinate) -> Vec<(Coordinate, Direction)> {
+pub fn growing_tree_maze(
+    maze: &Maze,
+    mut rng: StdRng,
+    chooser: &dyn Fn(&[Coordinate]) -> &Coordinate,
+) -> Vec<(Coordinate, Direction)> {
     let mut active = vec![];
     let mut walls_to_break = vec![];
     let first_end = *maze.get_end_point().iter().next().unwrap();
@@ -28,13 +32,12 @@ pub fn growing_tree(maze: &Maze, chooser: &dyn Fn(&[Coordinate]) -> &Coordinate)
                     continue;
                 }
             };
-            
+
             let r1 = maze.end.contains(&current);
-            let nc = maze.end.contains(&new_coordinates); 
-            if visited.contains(&new_coordinates) || ( ((r1 && !nc) || (nc && !r1)) && end_visited){
+            let nc = maze.end.contains(&new_coordinates);
+            if visited.contains(&new_coordinates) || (((r1 && !nc) || (nc && !r1)) && end_visited) {
                 continue;
             }
-            
 
             new_cells.push((dir, new_coordinates));
         }
@@ -47,7 +50,7 @@ pub fn growing_tree(maze: &Maze, chooser: &dyn Fn(&[Coordinate]) -> &Coordinate)
                 .collect();
             continue;
         }
-        let chosen_cell = new_cells.remove(rand::rng().random_range(0..new_cells.len()));
+        let chosen_cell = new_cells.remove(rng.random_range(0..new_cells.len()));
         let r1 = maze.end.contains(&current);
         let nc = maze.end.contains(&chosen_cell.1);
         if (r1 && !nc) || (nc && !r1) {
@@ -58,4 +61,28 @@ pub fn growing_tree(maze: &Maze, chooser: &dyn Fn(&[Coordinate]) -> &Coordinate)
         active.push(chosen_cell.1);
     }
     walls_to_break
+}
+
+#[cfg(test)]
+mod tests {
+    use rand::SeedableRng;
+
+    use crate::{maze::maze::Maze, test_utils::all_tiles_reachable::all_tiles_reachable};
+
+    use super::*;
+
+    #[test]
+    fn test_growing_tree() {
+        for _ in 0..100 {
+            let mut maze = Maze::new(20, 20);
+            maze.set_end((maze.width / 2, maze.height / 2));
+            let walls_to_break =
+                growing_tree_maze(&mut maze, StdRng::from_rng(&mut rand::rng()), &|list| {
+                    &list[rand::rng().random_range(0..list.len())]
+                });
+            maze.break_walls_for_path(walls_to_break);
+
+            assert!(all_tiles_reachable(&maze));
+        }
+    }
 }

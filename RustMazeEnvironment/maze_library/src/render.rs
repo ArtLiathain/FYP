@@ -3,7 +3,7 @@ pub mod render {
     use crate::direction::Direction;
     use crate::environment::environment::{Coordinate, Environment};
     use crate::maze::maze::Cell;
-    use macroquad::color::{Color, BLACK, DARKGRAY, DARKPURPLE, GOLD, GREEN, LIGHTGRAY, LIME, PINK, RED, WHITE};
+    use macroquad::color::{Color, BLACK, DARKPURPLE, GOLD, GREEN, LIGHTGRAY, PINK, RED, WHITE};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
     use rand::{rng, Rng};
@@ -62,7 +62,11 @@ pub mod render {
     ) {
         let base_offset = 10.0;
         let base_colour = random_base_color();
-        let max_steps = path_map.values().map(|(steps, _)| *steps).max().unwrap_or(100);
+        let max_steps = path_map
+            .values()
+            .map(|(steps, _)| *steps)
+            .max()
+            .unwrap_or(100);
         for row in &environment.maze.grid {
             for cell in row {
                 draw_cell_coloured(
@@ -74,7 +78,7 @@ pub mod render {
                     path_map,
                     max_steps,
                     base_colour,
-                    environment
+                    environment,
                 )
                 .await;
             }
@@ -87,13 +91,13 @@ pub mod render {
         let (r, g, b) = hsv_to_rgb(hue, 1.0, 1.0);
         Color::new(r, g, b, 1.0)
     }
-    
+
     // Convert HSV to RGB
     fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
         let c = v * s;
         let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
         let m = v - c;
-    
+
         let (r1, g1, b1) = match h {
             h if (0.0..60.0).contains(&h) => (c, x, 0.0),
             h if (60.0..120.0).contains(&h) => (x, c, 0.0),
@@ -102,7 +106,7 @@ pub mod render {
             h if (240.0..300.0).contains(&h) => (x, 0.0, c),
             _ => (c, 0.0, x),
         };
-    
+
         (r1 + m, g1 + m, b1 + m)
     }
 
@@ -115,7 +119,7 @@ pub mod render {
         path_map: &HashMap<Coordinate, (usize, Coordinate)>,
         max_steps: usize,
         random_colour: Color,
-        environment: &Environment
+        environment: &Environment,
     ) {
         let x = cell.x as f32 * cell_size + offset + x_offset;
         let y = cell.y as f32 * cell_size + offset + y_offset;
@@ -124,7 +128,12 @@ pub mod render {
             // Clamp steps to a maximum for color normalization
             let normalized = (*steps as f32 / max_steps as f32).min(1.0);
             let brightness = 1.0 - normalized;
-            Color::new(random_colour.r * brightness, random_colour.g * brightness,random_colour.b *  brightness, 1.0)
+            Color::new(
+                random_colour.r * brightness,
+                random_colour.g * brightness,
+                random_colour.b * brightness,
+                1.0,
+            )
         } else {
             random_colour
         };
@@ -143,12 +152,11 @@ pub mod render {
         }
 
         draw_cell_walls(cell, cell_size, x, y, 1.0);
-
     }
 
     fn draw_cell_walls(cell: &Cell, cell_size: f32, x: f32, y: f32, thickness: f32) {
         if cell.walls.contains(&Direction::North) {
-            draw_line(x, y, x + cell_size, y, thickness, DARKGRAY);
+            draw_line(x, y, x + cell_size, y, thickness, WHITE);
         }
         if cell.walls.contains(&Direction::East) {
             draw_line(
@@ -157,7 +165,7 @@ pub mod render {
                 x + cell_size,
                 y + cell_size,
                 thickness,
-                DARKGRAY,
+                WHITE,
             );
         }
         if cell.walls.contains(&Direction::South) {
@@ -167,11 +175,11 @@ pub mod render {
                 x + cell_size,
                 y + cell_size,
                 thickness,
-                DARKGRAY,
+                WHITE,
             );
         }
         if cell.walls.contains(&Direction::West) {
-            draw_line(x, y, x, y + cell_size, thickness, DARKGRAY);
+            draw_line(x, y, x, y + cell_size, thickness, WHITE);
         }
     }
 
@@ -191,9 +199,9 @@ pub mod render {
         let coordinates = (cell.x, cell.y);
 
         if cell.walls.len() == 4 {
-            draw_rectangle(x, y, cell_size, cell_size, BLACK);
-        } else {
             draw_rectangle(x, y, cell_size, cell_size, WHITE);
+        } else {
+            draw_rectangle(x, y, cell_size, cell_size, BLACK);
         }
 
         if visited.contains(&coordinates) {

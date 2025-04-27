@@ -1,20 +1,19 @@
-use rand::Rng;
+use rand::{rngs::StdRng, Rng};
 
 use crate::{direction::Direction, environment::environment::Coordinate, maze::maze::Maze};
 
-pub fn random_wilson_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
+pub fn random_wilson_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Direction)> {
     let mut unvisited_nodes: Vec<Coordinate> = (0..maze.width)
         .flat_map(|x| (0..maze.height).map(move |y| (x, y)))
         .collect();
 
     let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
-    let mut visited_nodes= maze.end.clone();
+    let mut visited_nodes = maze.end.clone();
     let end_coordinates = &maze.end;
     let mut visited_end = false;
 
     while !unvisited_nodes.is_empty() {
-        let mut current =
-            unvisited_nodes.remove(rand::rng().random_range(0..unvisited_nodes.len()));
+        let mut current = unvisited_nodes.remove(rng.random_range(0..unvisited_nodes.len()));
         if visited_nodes.contains(&current) {
             continue;
         }
@@ -32,7 +31,7 @@ pub fn random_wilson_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
                     continue;
                 }
             }
-            
+
             new_path.push((current, direction));
 
             let match_index = new_path
@@ -45,7 +44,9 @@ pub fn random_wilson_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
                 continue;
             }
 
-            if end_coordinates.contains(&new_coordinates) || visited_nodes.contains(&new_coordinates) {
+            if end_coordinates.contains(&new_coordinates)
+                || visited_nodes.contains(&new_coordinates)
+            {
                 visited_end = true;
                 break;
             }
@@ -63,16 +64,19 @@ pub fn random_wilson_maze(maze: &Maze) -> Vec<(Coordinate, Direction)> {
 
 #[cfg(test)]
 mod tests {
+    use rand::SeedableRng;
+
     use crate::{maze::maze::Maze, test_utils::all_tiles_reachable::all_tiles_reachable};
 
     use super::*;
 
     #[test]
     fn test_wilsons() {
-        for _ in 0..1 {
+        for _ in 0..10 {
             let mut maze = Maze::new(20, 20);
-            maze.set_end((maze.width/2, maze.height/2));
-            let walls_to_break = random_wilson_maze(&mut maze);
+            maze.set_end((maze.width / 2, maze.height / 2));
+            let walls_to_break =
+                random_wilson_maze(&mut maze, SeedableRng::from_rng(&mut rand::rng()));
             maze.break_walls_for_path(walls_to_break);
 
             assert!(all_tiles_reachable(&maze));

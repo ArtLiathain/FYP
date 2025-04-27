@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
+use maze_library::maze_gen::maze_gen_handler::MazeType;
 
-use crate::{ExploreAlgorithm, MazeType, SolveAlgorithm};
+use crate::{ExploreAlgorithm, SolveAlgorithm};
 
 #[derive(Parser)]
 #[command(name = "RustMazeCLI")]
@@ -19,7 +20,7 @@ pub enum Commands {
         explore_algoithm: ExploreAlgorithm,
 
         /// maze generation algotithm
-        #[arg(short, long, value_enum, default_value_t=MazeType::Random)]
+        #[arg(short, long, value_enum, default_value_t=MazeType::Kruzkals)]
         gen_algotithm: MazeType,
 
         /// Maze solving algorithm
@@ -59,7 +60,7 @@ pub enum Commands {
         #[arg(short, long, value_enum, default_values_t=vec![SolveAlgorithm::Dfs, SolveAlgorithm::Dijkstra], num_args = 0..)]
         solve_algoithms: Vec<SolveAlgorithm>,
 
-        #[arg(short, long, value_enum, default_value_t=MazeType::Random)]
+        #[arg(short, long, value_enum, default_value_t=MazeType::Kruzkals)]
         gen_algotithm: MazeType,
 
         #[arg(short, long, required = false)]

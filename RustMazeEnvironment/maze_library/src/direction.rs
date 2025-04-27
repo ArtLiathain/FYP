@@ -39,8 +39,8 @@ impl fmt::Display for Direction {
 }
 
 pub fn direction_between(from: Coordinate, to: Coordinate) -> Option<Direction> {
-    let dx = to.0  as i32- from.0 as i32;
-    let dy = to.1  as i32- from.1 as i32;
+    let dx = to.0 as i32 - from.0 as i32;
+    let dy = to.1 as i32 - from.1 as i32;
     match (dx, dy) {
         (0, d) if d > 0 => Some(Direction::South),
         (0, d) if d < 0 => Some(Direction::North),
@@ -74,8 +74,6 @@ impl Direction {
         ];
         direction_array[(*prev_direction as usize + *self as usize) % 4]
     }
-
-    
 
     pub fn turn_amount(&self, prev_direction: &Direction) -> usize {
         (*prev_direction as i32 - *self as i32).abs() as usize

@@ -264,7 +264,7 @@ pub mod maze {
         pub fn convert_to_weighted_graph(
             &self,
             visited: Option<&HashMap<Coordinate, usize>>,
-            skip_non_decision_nodes: bool
+            skip_non_decision_nodes: bool,
         ) -> HashMap<Coordinate, HashMap<Direction, usize>> {
             let mut decision_nodes: HashMap<Coordinate, HashMap<Direction, usize>> = HashMap::new();
             let mut decision_set: HashSet<Coordinate> = HashSet::new();

@@ -28,4 +28,5 @@ impl EnvConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PythonConfig {
     pub allowed_revisits: usize,
+    pub use_sparse_rewards: bool,
 }

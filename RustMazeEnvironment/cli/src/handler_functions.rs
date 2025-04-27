@@ -7,15 +7,13 @@ use maze_library::{
     direction::direction_between,
     environment::environment::Environment,
     environment_config::EnvConfig,
-    maze_gen::{growing_tree::growing_tree, kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze},
+    maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
 };
-use rand::{rng, seq::IteratorRandom};
-use strum::IntoEnumIterator;
 
 use crate::{
     exploring_algorithms::wall_following::follow_wall_explore,
     solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijkstra_solve},
-    ExploreAlgorithm, MazeType, SolveAlgorithm,
+    ExploreAlgorithm, SolveAlgorithm,
 };
 
 pub fn read_environment_from_file(filename: &str) -> Result<Environment, Error> {
@@ -42,32 +40,32 @@ pub fn generate_environment_list(
     width: usize,
     height: usize,
     count: usize,
-    removed_walls : usize
+    removed_walls: usize,
+    rng_seed: Option<u64>,
 ) -> Vec<Environment> {
     let mut environments = vec![];
     for _ in 0..count {
-        environments.push(generate_environment(algorithm, width, height, removed_walls));
+        environments.push(generate_environment(
+            algorithm,
+            width,
+            height,
+            removed_walls,
+            rng_seed,
+        ));
     }
     environments
 }
 
-pub fn generate_environment(algorithm: &MazeType, width: usize, height: usize, removed_walls : usize) -> Environment {
-    let walls;
+pub fn generate_environment(
+    algorithm: &MazeType,
+    width: usize,
+    height: usize,
+    removed_walls: usize,
+    rng_seed: Option<u64>,
+) -> Environment {
     let mut env = Environment::new(EnvConfig::new_rust_config(width, height));
-    match algorithm {
-        MazeType::Wilsons => walls = random_wilson_maze(&env.maze),
-        MazeType::Kruzkals => walls = random_kruzkals_maze(&env.maze),
-        MazeType::GrowingTree => walls = growing_tree(&env.maze, &|list| list.last().unwrap()),
-        MazeType::Random => {
-            let mut rng = rng();
-            let new_algorithm = &MazeType::iter()
-                .filter(|algo| algo != &MazeType::Random) // Exclude the chosen variant
-                .choose(&mut rng)
-                .unwrap();
+    let walls = select_maze_algorithm(&env.maze, rng_seed, algorithm);
 
-            return generate_environment(new_algorithm, width, height, removed_walls);
-        }
-    }
     env.maze.break_walls_for_path(walls);
     let extra_walls = env.maze.break_random_walls(removed_walls);
     env.maze.break_walls_for_path(extra_walls);
