@@ -1,6 +1,6 @@
 use std::fmt;
 
-use rand::Rng;
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 use crate::environment::environment::Coordinate;
@@ -81,8 +81,8 @@ impl Direction {
 }
 
 impl Direction {
-    pub fn random() -> Direction {
-        match rand::rng().random_range(0..4) {
+    pub fn random(rng: &mut StdRng) -> Direction {
+        match rng.random_range(0..4) {
             0 => Direction::North,
             1 => Direction::South,
             2 => Direction::East,

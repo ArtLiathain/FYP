@@ -4,6 +4,8 @@ pub mod environment;
 pub mod environment_config;
 pub mod maze;
 pub mod maze_gen;
+pub mod exploring_algorithms;
+pub mod solving_algorithms;
 pub mod render;
 
 #[cfg(feature = "python")]

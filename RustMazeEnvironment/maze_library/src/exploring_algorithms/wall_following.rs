@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 
-use maze_library::{
-    direction::Direction,
-    environment::environment::{Coordinate, Environment},
-};
+use crate::{direction::Direction, environment::environment::{Coordinate, Environment}};
+
 
 pub fn follow_wall_explore(env: &mut Environment, end: Coordinate) {
     let start = env.maze.start;

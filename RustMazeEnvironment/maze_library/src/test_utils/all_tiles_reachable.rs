@@ -9,7 +9,6 @@ pub fn all_tiles_reachable(maze: &Maze) -> bool {
         if visited.contains(&current) {
             continue;
         }
-
         visited.insert(current);
 
         for direction in &[
@@ -32,6 +31,5 @@ pub fn all_tiles_reachable(maze: &Maze) -> bool {
             }
         }
     }
-
     visited.len() == maze.width * maze.height
 }

@@ -159,12 +159,6 @@ impl Environment {
             reward += 2.0;
         }
 
-        if self.path_followed.len() >= 4 {
-            if self.current_location == self.path_followed[self.path_followed.len() - 3].0 {
-                reward -= 1.5; // Penalty for oscillating motion
-            }
-        }
-
         //Running into a wall essentially
         if self.current_location == old_location {
             reward -= 3.0;

@@ -6,7 +6,8 @@ use strum_macros::EnumIter;
 use crate::{direction::Direction, environment::environment::Coordinate, maze::maze::Maze};
 
 use super::{
-    growing_tree::growing_tree_maze, kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze,
+    binary_tree::random_binary_maze, growing_tree::growing_tree_maze,
+    kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze,
 };
 
 #[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
@@ -15,6 +16,7 @@ pub enum MazeType {
     Wilsons,
     Sidewinder,
     Prims,
+    BinaryTree,
 }
 
 impl FromStr for MazeType {
@@ -26,6 +28,7 @@ impl FromStr for MazeType {
             "wilsons" => Ok(MazeType::Wilsons),
             "sidewinder" => Ok(MazeType::Sidewinder),
             "prims" => Ok(MazeType::Prims),
+            "binary-tree" => Ok(MazeType::BinaryTree),
             _ => Err(()),
         }
     }
@@ -44,6 +47,7 @@ pub fn select_maze_algorithm(
         MazeType::Wilsons => random_wilson_maze(maze, rng),
         MazeType::Kruzkals => random_kruzkals_maze(maze, rng),
         MazeType::Sidewinder => growing_tree_maze(maze, rng, &|list| list.last().unwrap()),
+        MazeType::BinaryTree => random_binary_maze(maze, rng),
         MazeType::Prims => growing_tree_maze(maze, rng.clone(), &|list| {
             &list[rng.clone().random_range(0..list.len())]
         }),

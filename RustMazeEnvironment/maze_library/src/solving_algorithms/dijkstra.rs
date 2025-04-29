@@ -3,24 +3,23 @@ use std::{
     collections::{BinaryHeap, HashMap, HashSet},
 };
 
-use maze_library::{
-    environment::environment::{Coordinate, Environment},
-    maze::maze::{directional_movement, to_usize_tuple},
-};
+use crate::{environment::environment::{Coordinate, Environment}, maze::maze::{directional_movement, to_usize_tuple}};
+
+
 
 pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> Vec<Coordinate> {
     let path_map = dijkstra_graph(env, start);
 
-    let mut head = end;
+    let mut previous = end;
     let mut path_followed = vec![];
-    while head != start {
-        if let Some((_, temp)) = path_map.get(&head) {
-            path_followed.push(head);
-            head = *temp;
+    while previous != start {
+        if let Some((_, current)) = path_map.get(&previous) {
+            path_followed.push(previous);
+            previous = *current;
         } else {
             panic!(
                 "Failed to reconstruct the path: Node {:?} is unreachable.",
-                head
+                previous
             );
         }
     }

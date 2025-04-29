@@ -151,5 +151,11 @@ pub mod environment {
 
             (total_run_steps, total_run_penalty)
         }
+
+        pub fn move_path_vec(&mut self, path : &Vec<(Coordinate, Direction)>, run: usize)  {
+            for (_, direction) in path{
+                self.move_from_current(direction, run);
+            }
+        }
     }
 }

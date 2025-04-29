@@ -3,7 +3,8 @@ use std::{
     vec,
 };
 
-use maze_library::environment::environment::{Coordinate, Environment};
+use crate::environment::environment::{Coordinate, Environment};
+
 
 pub fn solve_maze_dfs(env: &Environment, end: Coordinate) -> Vec<Coordinate> {
     let mut stack: Vec<((usize, usize), usize)> = vec![(env.maze.get_starting_point(), 0)]; // Stack for DFS

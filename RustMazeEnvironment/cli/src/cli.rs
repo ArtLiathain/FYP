@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
-use maze_library::maze_gen::maze_gen_handler::MazeType;
+use maze_library::{exploring_algorithms::explore_handler::ExploreAlgorithm, maze_gen::maze_gen_handler::MazeType, solving_algorithms::solve_handler::SolveAlgorithm};
 
-use crate::{ExploreAlgorithm, SolveAlgorithm};
 
 #[derive(Parser)]
 #[command(name = "RustMazeCLI")]
@@ -16,7 +15,7 @@ pub enum Commands {
     /// Solve a maze with given parameters
     Solve {
         /// Maze exploring algorithm
-        #[arg(short, long, value_enum, default_value_t=ExploreAlgorithm::Random)]
+        #[arg(short, long, value_enum, default_value_t=ExploreAlgorithm::WallFollowing)]
         explore_algoithm: ExploreAlgorithm,
 
         /// maze generation algotithm

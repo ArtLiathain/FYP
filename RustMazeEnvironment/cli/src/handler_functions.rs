@@ -4,16 +4,7 @@ use std::{
 };
 
 use maze_library::{
-    direction::direction_between,
-    environment::environment::Environment,
-    environment_config::EnvConfig,
-    maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
-};
-
-use crate::{
-    exploring_algorithms::wall_following::follow_wall_explore,
-    solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijkstra_solve},
-    ExploreAlgorithm, SolveAlgorithm,
+    environment::environment::Environment, environment_config::EnvConfig, exploring_algorithms::{explore_handler::ExploreAlgorithm, wall_following::follow_wall_explore}, maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType}, solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijkstra_solve, solve_handler::{select_maze_solve_algorithm, SolveAlgorithm}}
 };
 
 pub fn read_environment_from_file(filename: &str) -> Result<Environment, Error> {
@@ -71,40 +62,9 @@ pub fn generate_environment(
     env.maze.break_walls_for_path(extra_walls);
     env
 }
+ 
+pub fn solve_maze(env : &mut Environment, algorithm: &SolveAlgorithm) {
+    let path = select_maze_solve_algorithm(env, algorithm);
+    
+}   
 
-pub fn explore_maze(environment: &mut Environment, algorithm: &ExploreAlgorithm) {
-    match algorithm {
-        ExploreAlgorithm::WallFollowing => {
-            follow_wall_explore(environment, *environment.maze.end.iter().next().unwrap());
-        }
-        ExploreAlgorithm::Random => {
-            follow_wall_explore(environment, *environment.maze.end.iter().next().unwrap());
-        }
-        ExploreAlgorithm::None => {
-            environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, true);
-            return;
-        }
-    };
-    environment.weighted_graph = environment
-        .maze
-        .convert_to_weighted_graph(Some(&environment.visited), true);
-}
-
-pub fn solve_maze(environment: &mut Environment, algorithm: &SolveAlgorithm) {
-    let maze = &environment.maze;
-    let path = match algorithm {
-        SolveAlgorithm::Dfs => {
-            solve_maze_dfs(environment, *environment.maze.end.iter().next().unwrap())
-        }
-        SolveAlgorithm::Dijkstra => dijkstra_solve(
-            &environment,
-            maze.start,
-            *environment.maze.end.iter().next().unwrap(),
-        ),
-    };
-    let current_run = environment.get_current_run() + 1;
-    for index in 1..path.len() {
-        let direction = direction_between(path[index - 1], path[index]).unwrap();
-        environment.move_from_current(&direction, current_run);
-    }
-}

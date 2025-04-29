@@ -1,21 +1,17 @@
+use std::{collections::HashSet, thread::sleep, time::Duration};
+
 use clap::{Parser, ValueEnum};
 use cli::{Cli, Commands};
 use handler_functions::{
-    explore_maze, generate_environment, generate_environment_list, read_environment_from_file,
-    solve_maze,
+    generate_environment, generate_environment_list, read_environment_from_file,
 };
 use log::info;
-use macroquad::window::Conf;
+use macroquad::window::{next_frame, Conf};
 use maze_library::{
-    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH},
-    environment::environment::Environment,
-    render::render::render_mazes,
+    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, environment_config::{EnvConfig, PythonConfig}, exploring_algorithms::explore_handler::explore_maze_with, maze_gen::{binary_tree::random_binary_maze, maze_gen_handler::{select_maze_algorithm, MazeType}}, render::render::{draw_maze, render_mazes}, solving_algorithms::solve_handler::select_maze_solve_algorithm
 };
-use strum_macros::EnumIter;
 mod cli;
-pub mod exploring_algorithms;
 mod handler_functions;
-pub mod solving_algorithms;
 
 fn window_conf() -> Conf {
     Conf {
@@ -25,18 +21,6 @@ fn window_conf() -> Conf {
         fullscreen: false,
         ..Default::default()
     }
-}
-
-#[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
-pub enum ExploreAlgorithm {
-    WallFollowing,
-    None,
-    Random,
-}
-#[derive(ValueEnum, Clone, Debug)]
-pub enum SolveAlgorithm {
-    Dfs,
-    Dijkstra,
 }
 
 fn main() {
@@ -74,8 +58,12 @@ fn main() {
 
             for mut environment in environments.iter_mut() {
                 environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, true);
-                explore_maze(&mut environment, &explore_algoithm);
-                solve_maze(&mut environment, &solve_algoithm);
+                explore_maze_with(&mut environment, &explore_algoithm);
+                let path = select_maze_solve_algorithm(environment, &solve_algoithm);
+                environment.move_path_vec(
+                    &path,
+                    environment.get_current_run() + 1,
+                );
             }
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
@@ -118,12 +106,12 @@ fn main() {
                 }
             }
             let mut environments = vec![environment; count];
-            for (index, mut environment) in environments.iter_mut().enumerate() {
-                solve_maze(
-                    &mut environment,
-                    &solve_algoithms[index % solve_algoithms.len()],
-                );
-            }
+            // for (index, mut environment) in environments.iter_mut().enumerate() {
+            //     solve_maze(
+            //         &mut environment,
+            //         &solve_algoithms[index % solve_algoithms.len()],
+            //     );
+            // }
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
                 render_mazes(environments, cell_size).await;
@@ -132,12 +120,12 @@ fn main() {
         Commands::Test {} => {
             // let filename = format!("../mazeLogs/error_0.json");
             // let environment = read_environment_from_file(&filename).unwrap();
-            // let config: EnvConfig = EnvConfig::new(20, 20, PythonConfig::default());
-            // let mut environment = Environment::new(config);
-            // let walls = growing_tree(&environment.maze,Some(25) ,&|list| list.last().unwrap());
+            let config: EnvConfig = EnvConfig::new(10, 10, PythonConfig::default());
+            let mut environment = Environment::new(config);
+            let walls = select_maze_algorithm(&environment.maze, None, &MazeType::BinaryTree);
             // // let walls = random_wilson_maze(&environment.maze);
             // // println!("{:?}", walls);
-            // environment.maze.break_walls_for_path(walls);
+            environment.maze.break_walls_for_path(walls);
             // environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, false);
             // let path_graph = dijkstra_graph(&environment, *environment.maze.end.iter().next().unwrap());
             // // for (key, value) in environment.weighted_graph.iter() {
@@ -146,12 +134,12 @@ fn main() {
             //     }
             // }
             // println!("{:?}", path_graph);
-            // macroquad::Window::from_config(window_conf(), async move {
-            //         // draw_maze(&environment, cell_size, &HashSet::new(), 0, 0.0, 0.0).await;
+            macroquad::Window::from_config(window_conf(), async move {
+                    draw_maze(&environment, cell_size, &HashSet::new(), 0, 0.0, 0.0).await;
             //         draw_coloured_maze(&environment, cell_size, 10.0, 10.0, &path_graph).await;
-            //         next_frame().await;
-            //         sleep(Duration::from_millis(100000));
-            // });
+                    next_frame().await;
+                    sleep(Duration::from_millis(100000));
+            });
         }
     }
 }
