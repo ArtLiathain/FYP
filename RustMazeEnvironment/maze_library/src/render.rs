@@ -23,7 +23,7 @@ pub mod render {
         y_offset: f32,
     ) {
         let base_offset = 10.0;
-        let current_run = environment.get_current_run();
+        let current_run = environment.path_followed[step].1;
         let mut path_visited = HashSet::new();
         let path_start_index = environment
             .path_followed
@@ -63,7 +63,6 @@ pub mod render {
         path_map: &HashMap<Coordinate, usize>,
     ) {
         let base_offset = 10.0;
-        let base_colour = random_base_color(x_offset, y_offset, environment.path_followed.len());
         let max_steps = path_map.values().max().unwrap_or(&100);
         for row in &environment.maze.grid {
             for cell in row {
@@ -75,7 +74,7 @@ pub mod render {
                     y_offset,
                     path_map,
                     *max_steps,
-                    base_colour,
+                    Color::from_rgba(30, 144, 255, 255),
                     environment,
                 )
                 .await;
@@ -83,12 +82,7 @@ pub mod render {
         }
     }
 
-    fn random_base_color(x_offset: f32, y_offset: f32, path_len: usize) -> Color {
-        let mut rng = StdRng::seed_from_u64(x_offset as u64 + y_offset as u64 + path_len as u64);
-        let hue: f32 = rng.random_range(0.0..360.0);
-        let (r, g, b) = hsv_to_rgb(hue, 1.0, 1.0);
-        Color::new(r, g, b, 1.0)
-    }
+    
 
     // Convert HSV to RGB
     fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {

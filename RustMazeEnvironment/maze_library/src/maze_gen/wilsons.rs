@@ -9,8 +9,6 @@ pub fn random_wilson_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Dire
 
     let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
     let mut visited_nodes = maze.end.clone();
-    let end_coordinates = &maze.end;
-    let mut visited_end = false;
 
     while !unvisited_nodes.is_empty() {
         let mut current = unvisited_nodes.remove(rng.random_range(0..unvisited_nodes.len()));
@@ -26,11 +24,6 @@ pub fn random_wilson_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Dire
                     continue;
                 }
             };
-            if maze.end.contains(&new_coordinates) {
-                if visited_end {
-                    continue;
-                }
-            }
 
             new_path.push((current, direction));
 
@@ -44,10 +37,8 @@ pub fn random_wilson_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Dire
                 continue;
             }
 
-            if end_coordinates.contains(&new_coordinates)
-                || visited_nodes.contains(&new_coordinates)
+            if visited_nodes.contains(&new_coordinates)
             {
-                visited_end = true;
                 break;
             }
             current = new_coordinates;

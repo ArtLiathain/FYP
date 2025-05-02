@@ -1,25 +1,17 @@
+use std::collections::HashSet;
+
 use rand::{rngs::StdRng, Rng};
 
-use crate::{
-    direction::Direction,
-    environment::environment::Coordinate,
-    maze::maze::Maze,
-};
+use crate::{direction::Direction, environment::environment::Coordinate, maze::maze::Maze};
 
 pub fn random_binary_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Direction)> {
     let mut unvisited_nodes: Vec<Coordinate> = (0..maze.width)
         .flat_map(|x| (0..maze.height).map(move |y| (x, y)))
         .collect();
 
-    let mut walls_to_break: Vec<(Coordinate, Direction)> = vec![
-        (maze.get_starting_point(), Direction::North),
-        (maze.get_starting_point(), Direction::East),
-    ];
-    let mut visited_nodes = maze.end.clone();
+    let mut walls_to_break: Vec<(Coordinate, Direction)> = vec![];
+    let mut visited_nodes = HashSet::from([(maze.width - 1, 0)]);
     //top right node is considered visited
-    visited_nodes.insert((maze.width - 1, 0));
-    let end_coordinates = &maze.end;
-    let mut visited_end = false;
     let directions = [Direction::North, Direction::East];
     while !unvisited_nodes.is_empty() {
         let mut current = unvisited_nodes.remove(rng.random_range(0..unvisited_nodes.len()));
@@ -36,18 +28,9 @@ pub fn random_binary_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Dire
                     continue;
                 }
             };
-            if maze.end.contains(&new_coordinates) {
-                if visited_end {
-                    continue;
-                }
-            }
 
             new_path.push((current, direction));
 
-            if end_coordinates.contains(&new_coordinates) {
-                visited_end = true;
-                continue;
-            }
             if visited_nodes.contains(&new_coordinates) {
                 break;
             }
@@ -79,8 +62,6 @@ mod tests {
             let walls_to_break =
                 random_binary_maze(&mut maze, SeedableRng::from_rng(&mut rand::rng()));
             maze.break_walls_for_path(walls_to_break);
-            
-            
 
             assert!(all_tiles_reachable(&maze));
         }

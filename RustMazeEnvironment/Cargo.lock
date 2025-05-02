@@ -362,6 +362,7 @@ dependencies = [
  "clap",
  "log",
  "macroquad",
+ "num-traits",
  "pyo3",
  "rand",
  "serde",

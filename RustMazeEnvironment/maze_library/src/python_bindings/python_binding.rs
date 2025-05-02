@@ -16,8 +16,8 @@ pub mod python_bindings {
     };
 
     #[pyfunction(
-        signature = (width, height,gen_algorithm=String::from("kruzkals"), allowed_revisits=50, use_sparse_rewards=false, use_weighted_graph=true, rng_seed=None, mini_runs_per_episode=10),
-        text_signature = "(width, height,gen_algorithm='kruzkals', allowed_revisits=50, use_sparse_rewards=False,use_weighted_graph=True, rng_seed=None, mini_runs_per_episode=10)"
+        signature = (width, height,gen_algorithm=String::from("kruzkals"), allowed_revisits=50, use_sparse_rewards=false, use_weighted_graph=true, rng_seed=None, mini_exploit_runs_per_episode=2, mini_explore_runs_per_episode=2, exploration_steps=None),
+        text_signature = "(width, height,gen_algorithm='kruzkals', allowed_revisits=50, use_sparse_rewards=False,use_weighted_graph=True, rng_seed=None, mini_exploit_runs_per_episode=2, mini_explore_runs_per_episode=2, exploration_steps=None)"
     )]
     fn init_environment(
         width: usize,
@@ -27,7 +27,9 @@ pub mod python_bindings {
         use_sparse_rewards: bool,
         use_weighted_graph: bool,
         rng_seed: Option<u64>,
-        mini_runs_per_episode: usize
+        mini_exploit_runs_per_episode: usize,
+        mini_explore_runs_per_episode: usize,
+        exploration_steps: Option<usize>,
     ) -> PyResult<Environment> {
         let config: EnvConfig = EnvConfig::new(
             width,
@@ -35,7 +37,13 @@ pub mod python_bindings {
             PythonConfig {
                 allowed_revisits,
                 use_sparse_rewards,
-                mini_runs_per_episode
+                mini_exploit_runs_per_episode,
+                mini_explore_runs_per_episode,
+                exploration_steps: if exploration_steps.is_some() {
+                    exploration_steps.unwrap()
+                } else {
+                    width * height * 2
+                },
             },
         );
         let mut env = Environment::new(config);
@@ -71,7 +79,6 @@ pub mod python_bindings {
     fn get_score(environment: &mut Environment) -> PyResult<ReportCard> {
         Ok(environment.generate_report_card())
     }
-
 
     #[pymodule]
     fn maze_library(m: &Bound<'_, PyModule>) -> PyResult<()> {

@@ -45,6 +45,8 @@ pub mod maze {
         }
     }
 
+
+
     pub fn to_usize_tuple(coord: (i32, i32)) -> (usize, usize) {
         (coord.0 as usize, coord.1 as usize)
     }
@@ -83,6 +85,13 @@ pub mod maze {
         }
 
         pub fn set_end(&mut self, cell: Coordinate) {
+            self.end = HashSet::from([cell]);
+        }
+
+        pub fn number_of_cells(&self) -> usize {
+            self.width * self.height
+        }
+        pub fn set_2x2_end(&mut self, cell: Coordinate) {
             let end_set = [
                 cell,
                 (cell.0 - 1, cell.1),

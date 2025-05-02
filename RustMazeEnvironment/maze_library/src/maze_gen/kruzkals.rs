@@ -13,7 +13,6 @@ pub fn random_kruzkals_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Di
     let mut walls_to_break: Vec<(Coordinate, Direction)> = Vec::new();
     let mut edge_set: HashSet<(Coordinate, Direction)> = HashSet::new();
     let mut union_find = QuickUnionUf::<UnionBySize>::new(maze.width * maze.height);
-    let mut end_visited = false;
 
     //Put all edges into a burlap sack
     for x in 0..maze.width {
@@ -37,15 +36,6 @@ pub fn random_kruzkals_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Di
                 continue;
             }
         };
-        let r1 = maze.end.contains(&random_edge.0);
-        let nc = maze.end.contains(&new_cell);
-        if (r1 && !nc) || (nc && !r1) {
-            if end_visited {
-                edge_set.remove(&random_edge);
-                continue;
-            }
-            end_visited = true;
-        }
         let cell_union_set = unique_coordinate_index(random_edge.0, maze.width);
         let new_cell_union_set = unique_coordinate_index(new_cell, maze.width);
         if union_find.find(cell_union_set) == union_find.find(new_cell_union_set) {

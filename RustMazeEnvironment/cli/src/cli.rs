@@ -30,10 +30,10 @@ pub enum Commands {
         #[arg(short, long, default_value_t = 10)]
         count: usize,
         /// Width of maze
-        #[arg(short, long, default_value_t = 20)]
+        #[arg(short, long, default_value_t = 19)]
         width: usize,
         /// Heigh of maze
-        #[arg(short, long, default_value_t = 20)]
+        #[arg(short, long, default_value_t = 19)]
         length: usize,
 
         /// additional walls to remove
@@ -69,6 +69,25 @@ pub enum Commands {
         #[arg(short, long, default_value_t = 5)]
         count: usize,
     },
+    ShowGenBias {
+ 
+         /// maze generation algotithm
+         #[arg(short, long, value_enum, default_value_t=MazeType::BinaryTree)]
+         gen_algotithm: MazeType,
+         /// number of mazes to solve
+         #[arg(short, long, default_value_t = 10)]
+         count: usize,
+         /// Width of maze
+         #[arg(short, long, default_value_t = 19)]
+         width: usize,
+         /// Heigh of maze
+         #[arg(short, long, default_value_t = 19)]
+         length: usize,
+ 
+         /// additional walls to remove
+         #[arg(short, long, default_value_t = 0)]
+         removed_walls: usize,
+    },
     Compare {
         #[arg(short, long, value_enum, default_values_t=vec![SolveAlgorithm::Dfs, SolveAlgorithm::Dijkstra], num_args = 0..)]
         solve_algoithms: Vec<SolveAlgorithm>,
@@ -83,10 +102,10 @@ pub enum Commands {
         #[arg(short, long, default_value_t = 10)]
         count: usize,
 
-        #[arg(short, long, default_value_t = 20)]
+        #[arg(short, long, default_value_t = 19)]
         width: usize,
         /// Heigh of maze
-        #[arg(short, long, default_value_t = 20)]
+        #[arg(short, long, default_value_t = 19)]
         length: usize,
     },
     Test {},

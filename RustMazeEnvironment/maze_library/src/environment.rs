@@ -26,7 +26,58 @@ pub mod environment {
         #[serde(skip)]
         pub weighted_graph: HashMap<Coordinate, HashMap<Direction, usize>>,
     }
-    
+
+    pub fn calcualte_score_for_coordinate_vector(
+        path: &Vec<Coordinate>,
+        weighted_graph: &HashMap<Coordinate, HashMap<Direction, usize>>,
+    ) -> (usize, usize, usize, f32) {
+        let mut direction_map = HashMap::new();
+        let mut reverse_count = 0;
+        let mut hit_count = 0;
+        let mut turn_count = 0;
+        let mut prev_direction = direction_between(path[0], path[1]).unwrap_or(Direction::North);
+        let mut total_run_steps = 0;
+        let mut total_run_penalty = 0;
+        for index in 2..path.len() {
+            let direction = direction_between(path[index - 1], path[index]);
+
+            if direction.is_none() {
+                hit_count += 1;
+                continue;
+            }
+            *direction_map.entry(direction.unwrap()).or_insert(0) += 1;
+
+            let count_steps = weighted_graph.get(&path[index - 1]);
+            if count_steps.is_none() {
+                hit_count += 1;
+                continue;
+            }
+            let turn_penalty = direction
+                .expect("Direction overall")
+                .turn_amount(&prev_direction);
+            if turn_penalty > 0 {
+                turn_count += 1;
+            } else {
+                *direction_map.entry(prev_direction).or_insert(0) += 1;
+            }
+            if turn_penalty == 2 {
+                reverse_count += 1;
+            }
+            total_run_penalty += turn_penalty;
+
+            total_run_steps += count_steps
+                .expect("Hashmap get")
+                .get(&direction.unwrap())
+                .expect("direction in nested hashmap");
+            prev_direction = direction.unwrap();
+        }
+        (
+            total_run_steps + total_run_penalty,
+            hit_count,
+            reverse_count,
+            total_run_steps as f32 / turn_count as f32,
+        )
+    }
 
     impl Environment {
         pub fn new(env_config: EnvConfig) -> Environment {
@@ -110,41 +161,24 @@ pub mod environment {
             self.path_followed[self.path_followed.len() - 1].1
         }
 
-        
-
-        pub fn calculate_run_score(&self, run_to_score: usize) -> (usize, usize) {
+        pub fn calculate_run_score(&self, run_to_score: usize) -> (usize, usize, usize, f32, bool) {
             let filtered_path: Vec<Coordinate> = self
                 .path_followed
                 .iter()
                 .filter(|(_, run)| *run == run_to_score)
                 .map(|(coord, _)| *coord)
                 .collect();
-
-            let mut prev_direction =
-                direction_between(filtered_path[0], filtered_path[1]).unwrap_or(Direction::North);
-            let mut total_run_steps = 0;
-            let mut total_run_penalty = 0;
-            for index in 2..filtered_path.len() {
-                let direction = direction_between(filtered_path[index - 1], filtered_path[index]);
-
-                if direction.is_none() {
-                    continue;
-                }
-                let count_steps = self.weighted_graph.get(&filtered_path[index - 1]);
-                if count_steps.is_none() {
-                    continue;
-                }
-                total_run_penalty += direction
-                    .expect("Direction overall")
-                    .turn_amount(&prev_direction);
-                total_run_steps += count_steps
-                    .expect("Hashmap get")
-                    .get(&direction.unwrap())
-                    .expect("direction in nested hashmap");
-                prev_direction = direction.unwrap();
-            }
-
-            (total_run_steps, total_run_penalty)
+            let (total_run_score, hit_count, reverse_count, average_path_length) =
+                calcualte_score_for_coordinate_vector(&filtered_path, &self.weighted_graph);
+            (
+                total_run_score,
+                hit_count,
+                reverse_count,
+                average_path_length as f32,
+                self.maze
+                    .end
+                    .contains(&filtered_path[filtered_path.len() - 1]),
+            )
         }
 
         pub fn move_path_vec(&mut self, path: &Vec<(Coordinate, Direction)>, run: usize) {

@@ -14,7 +14,7 @@ use maze_library::{
     exploring_algorithms::explore_handler::explore_maze_with,
     maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
     render::render::{draw_maze, render_mazes},
-    solving_algorithms::solve_handler::select_maze_solve_algorithm,
+    solving_algorithms::{dijkstra::dijkstra_graph, solve_handler::select_maze_solve_algorithm},
 };
 mod cli;
 mod handler_functions;
@@ -82,7 +82,7 @@ fn main() {
             info!("File Location: {}", filename);
             info!("File Count: {}", count);
             let mut environments: Vec<Environment> = vec![];
-            let (prefix, _) = extract_prefix(&filename);
+            let (prefix, start) = extract_prefix(&filename);
             for i in start..start + count {
                 let filename = format!("{}{}.json", prefix, i);
                 let environment = read_environment_from_file(&filename).unwrap();
@@ -102,12 +102,42 @@ fn main() {
             info!("File Location: {}", filename);
             info!("File Count: {}", count);
             let mut environments: Vec<Environment> = vec![];
-            let (prefix, _) = extract_prefix(&filename);
+            let (prefix, start) = extract_prefix(&filename);
             for i in start..start + count {
                 let filename = format!("{}{}.json", prefix, i);
                 let environment = read_environment_from_file(&filename).unwrap();
                 environments.push(environment);
             }
+            macroquad::Window::from_config(window_conf(), async move {
+                // Game loop
+                render_mazes(environments, cell_size, true).await;
+            });
+        }
+        Commands::ShowGenBias {
+            gen_algotithm,
+            count,
+            width,
+            length,
+            removed_walls,
+        } => {
+            info!("Generating mazes...");
+            let mut environments = generate_environment_list(
+                &gen_algotithm,
+                width,
+                length,
+                count,
+                removed_walls,
+                None,
+            );
+            environments.iter_mut().for_each(|env| {
+                env.weighted_graph = env.maze.convert_to_weighted_graph(None, false);
+                let path_graph = dijkstra_graph(&env, *env.maze.end.iter().next().unwrap())
+                    .into_iter()
+                    .map(|(k, v)| (k, v.0)) // Take the first element (usize) from the tuple
+                    .collect();
+                env.overall_visited = path_graph;
+            });
+
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
                 render_mazes(environments, cell_size, true).await;

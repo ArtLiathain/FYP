@@ -29,5 +29,7 @@ impl EnvConfig {
 pub struct PythonConfig {
     pub allowed_revisits: usize,
     pub use_sparse_rewards: bool,
-    pub mini_runs_per_episode: usize
+    pub mini_explore_runs_per_episode: usize,
+    pub mini_exploit_runs_per_episode: usize,
+    pub exploration_steps: usize,
 }
