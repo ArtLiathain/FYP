@@ -4,7 +4,7 @@ use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
 use crate::{
     direction::Direction,
-    environment::environment::{Coordinate, Environment},
+    environment::environment::{Coordinate, Environment}, maze::maze::Maze, maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
 };
 
 #[pyclass]
@@ -149,14 +149,14 @@ impl Environment {
         if number_visits > 0 {
             reward -= f32::min(0.5, number_visits as f32 * 0.15);
         } else {
-            reward += 2.0;
+            reward += 1.0;
         }
 
         if calculate_manhattan_distance(self.current_location, end)
             < calculate_manhattan_distance(old_location, end)
             && number_visits < 2
         {
-            reward += 2.0;
+            reward += 1.0;
         }
 
         //Running into a wall essentially
@@ -218,17 +218,21 @@ impl Environment {
     }
 
     pub fn reset(&mut self) -> Vec<f32> {
-        self.path_followed.clear();
-        self.current_location = self.maze.start;
         self.visited.clear();
-        self.steps = 0;
+        self.current_location = self.maze.start;
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }
 
-    pub fn reset_and_regenerate(&mut self) -> Vec<f32> {
+    pub fn reset_and_regenerate(&mut self ) -> Vec<f32> {
+        let mut maze = Maze::init_maze(self.maze.width, self.maze.height);
+        let walls = select_maze_algorithm(&maze, None, &MazeType::BinaryTree);
+        maze.break_walls_for_path(walls);
+        self.weighted_graph = maze.convert_to_weighted_graph(None, true);
+        self.maze = maze;
         self.path_followed.clear();
         self.current_location = self.maze.start;
         self.visited.clear();
+        self.overall_visited.clear();
         self.steps = 0;
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }

@@ -2,6 +2,7 @@ pub mod environment {
     use crate::{
         direction::{direction_between, Direction},
         environment_config::EnvConfig,
+        map_vec_conversion::map_vec_conversion,
         maze::maze::Maze,
     };
     use log::error;
@@ -20,10 +21,13 @@ pub mod environment {
         pub config: EnvConfig,
         #[serde(skip)]
         pub visited: HashMap<Coordinate, usize>,
+        #[serde(with = "map_vec_conversion")]
+        pub overall_visited: HashMap<Coordinate, usize>,
         #[serde(skip)]
         pub weighted_graph: HashMap<Coordinate, HashMap<Direction, usize>>,
     }
-
+    #[cfg_attr(feature = "python", pyo3::pyclass)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct ReportCard {
         pub total_steps: usize,
         pub best_run_penalty: usize,
@@ -40,6 +44,7 @@ pub mod environment {
                 previous_direction: None,
                 config: env_config,
                 visited: HashMap::from([(maze.get_starting_point(), 0)]),
+                overall_visited: HashMap::from([(maze.get_starting_point(), 0)]),
                 maze,
                 steps: 0,
                 weighted_graph: HashMap::new(),
@@ -63,6 +68,7 @@ pub mod environment {
                     .unwrap();
                 self.path_followed.push((intermediary_step, run));
                 *self.visited.entry(intermediary_step).or_insert(0) += 1;
+                *self.overall_visited.entry(intermediary_step).or_insert(0) += 1;
             }
             match self
                 .maze
@@ -71,6 +77,7 @@ pub mod environment {
                 Ok(new_loc) => {
                     self.path_followed.push((new_loc, run));
                     *self.visited.entry(new_loc).or_insert(0) += 1;
+                    *self.overall_visited.entry(new_loc).or_insert(0) += 1;
                     self.previous_direction = Some(*direction);
                     self.current_location = new_loc;
                     return steps;
@@ -111,18 +118,19 @@ pub mod environment {
         }
 
         pub fn generate_report_card(&self) -> ReportCard {
-            let mut best_score_run = (usize::MAX, usize::MAX, 0);
+            let (mut best_run_steps, mut best_run_penalty, mut best_run) = (usize::MAX, 0, 0);
             for i in 0..self.get_current_run() {
                 let (total_run_steps, total_run_penalty) = self.calculate_run_score(i);
-                if total_run_steps + total_run_penalty < best_score_run.0 + best_score_run.1 {
-                    best_score_run = (total_run_steps, total_run_penalty, i)
+                if total_run_steps + total_run_penalty < best_run_steps + best_run_penalty {
+                    (best_run_steps, best_run_penalty, best_run) =
+                        (total_run_steps, total_run_penalty, i)
                 }
             }
             ReportCard {
                 total_steps: self.steps,
-                best_run_steps: best_score_run.0,
-                best_run_penalty: best_score_run.1,
-                best_run: best_score_run.2,
+                best_run_steps,
+                best_run_penalty,
+                best_run,
             }
         }
 
@@ -133,29 +141,58 @@ pub mod environment {
                 .filter(|(_, run)| *run == run_to_score)
                 .map(|(coord, _)| *coord)
                 .collect();
-            let mut prev_direction = direction_between(filtered_path[0], filtered_path[1]).unwrap();
+
+            let mut prev_direction =
+                direction_between(filtered_path[0], filtered_path[1]).unwrap_or(Direction::North);
             let mut total_run_steps = 0;
             let mut total_run_penalty = 0;
             for index in 2..filtered_path.len() {
-                let direction =
-                    direction_between(filtered_path[index - 1], filtered_path[index]).unwrap();
-                total_run_penalty += direction.turn_amount(&prev_direction);
-                total_run_steps += self
-                    .weighted_graph
-                    .get(&filtered_path[index - 1])
-                    .unwrap()
-                    .get(&direction)
-                    .unwrap();
-                prev_direction = direction;
+                let direction = direction_between(filtered_path[index - 1], filtered_path[index]);
+
+                if direction.is_none() {
+                    continue;
+                }
+                let count_steps = self.weighted_graph.get(&filtered_path[index - 1]);
+                if count_steps.is_none() {
+                    continue;
+                }
+                total_run_penalty += direction
+                    .expect("Direction overall")
+                    .turn_amount(&prev_direction);
+                total_run_steps += count_steps
+                    .expect("Hashmap get")
+                    .get(&direction.unwrap())
+                    .expect("direction in nested hashmap");
+                prev_direction = direction.unwrap();
             }
 
             (total_run_steps, total_run_penalty)
         }
 
-        pub fn move_path_vec(&mut self, path : &Vec<(Coordinate, Direction)>, run: usize)  {
-            for (_, direction) in path{
+        pub fn move_path_vec(&mut self, path: &Vec<(Coordinate, Direction)>, run: usize) {
+            for (_, direction) in path {
                 self.move_from_current(direction, run);
             }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+
+        use crate::environment_config::PythonConfig;
+
+        use super::*;
+
+        #[test]
+        fn test_json() {
+            let env = Environment::new(EnvConfig {
+                maze_width: 10,
+                maze_height: 10,
+                python_config: PythonConfig::default(),
+            });
+            let json = env.to_json();
+            let parsed = Environment::from_json(&json);
+            assert!(parsed.is_ok());
         }
     }
 }

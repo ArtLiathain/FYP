@@ -9,7 +9,7 @@ pub mod python_bindings {
 
     use crate::{
         direction::Direction,
-        environment::environment::Environment,
+        environment::environment::{Environment, ReportCard},
         environment_config::{EnvConfig, PythonConfig},
         maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
         python_bindings::environment_bindings::{Action, ActionResult},
@@ -63,15 +63,25 @@ pub mod python_bindings {
         Ok(())
     }
 
+    #[pyfunction(
+        signature = (environment),
+        text_signature = "(environment)")]
+    fn get_score(environment: &mut Environment) -> PyResult<ReportCard> {
+        Ok(environment.generate_report_card())
+    }
+
+
     #[pymodule]
     fn maze_library(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m.add_function(wrap_pyfunction!(init_environment, m)?)?;
         m.add_function(wrap_pyfunction!(create_action, m)?)?;
         m.add_function(wrap_pyfunction!(make_maze_imperfect, m)?)?;
+        m.add_function(wrap_pyfunction!(get_score, m)?)?;
         m.add_class::<Direction>()?;
         m.add_class::<Environment>()?;
         m.add_class::<Action>()?;
         m.add_class::<ActionResult>()?;
+        m.add_class::<ReportCard>()?;
         Ok(())
     }
 }
