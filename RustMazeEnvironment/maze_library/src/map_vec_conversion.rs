@@ -2,7 +2,7 @@ pub mod map_vec_conversion {
     use serde::{Serializer, Deserializer};
     use std::collections::HashMap;
     use serde::ser::Serialize;
-    use serde::de::{self, Deserialize, Visitor, SeqAccess};
+    use serde::de::Deserialize;
 
     pub fn serialize<S>(
         map: &HashMap<(usize, usize), usize>,

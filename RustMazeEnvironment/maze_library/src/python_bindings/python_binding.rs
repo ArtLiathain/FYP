@@ -9,15 +9,15 @@ pub mod python_bindings {
 
     use crate::{
         direction::Direction,
-        environment::environment::{Environment, ReportCard},
+        environment::environment::Environment,
         environment_config::{EnvConfig, PythonConfig},
         maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
-        python_bindings::environment_bindings::{Action, ActionResult},
+        python_bindings::environment_bindings::{Action, ActionResult, ReportCard},
     };
 
     #[pyfunction(
-        signature = (width, height,gen_algorithm=String::from("kruzkals"), allowed_revisits=50, use_sparse_rewards=false, use_weighted_graph=true, rng_seed=None),
-        text_signature = "(width, height,gen_algorithm='kruzkals', allowed_revisits=50, use_sparse_rewards=False,use_weighted_graph=True, rng_seed=None)"
+        signature = (width, height,gen_algorithm=String::from("kruzkals"), allowed_revisits=50, use_sparse_rewards=false, use_weighted_graph=true, rng_seed=None, mini_runs_per_episode=10),
+        text_signature = "(width, height,gen_algorithm='kruzkals', allowed_revisits=50, use_sparse_rewards=False,use_weighted_graph=True, rng_seed=None, mini_runs_per_episode=10)"
     )]
     fn init_environment(
         width: usize,
@@ -27,6 +27,7 @@ pub mod python_bindings {
         use_sparse_rewards: bool,
         use_weighted_graph: bool,
         rng_seed: Option<u64>,
+        mini_runs_per_episode: usize
     ) -> PyResult<Environment> {
         let config: EnvConfig = EnvConfig::new(
             width,
@@ -34,6 +35,7 @@ pub mod python_bindings {
             PythonConfig {
                 allowed_revisits,
                 use_sparse_rewards,
+                mini_runs_per_episode
             },
         );
         let mut env = Environment::new(config);

@@ -4,9 +4,11 @@ pub mod render {
     use crate::environment::environment::{Coordinate, Environment};
     use crate::maze::maze::Cell;
     use macroquad::color::{Color, BLACK, DARKPURPLE, GOLD, GREEN, LIGHTGRAY, PINK, RED, WHITE};
+    use macroquad::input::{is_key_down, is_key_pressed, KeyCode};
     use macroquad::shapes::{draw_line, draw_rectangle};
     use macroquad::window::{clear_background, next_frame};
-    use rand::{rng, Rng};
+    use rand::rngs::StdRng;
+    use rand::{rng, Rng, SeedableRng};
     use std::cmp::min;
     use std::collections::{HashMap, HashSet};
     use std::thread::sleep;
@@ -58,15 +60,11 @@ pub mod render {
         cell_size: f32,
         x_offset: f32,
         y_offset: f32,
-        path_map: &HashMap<Coordinate, (usize, Coordinate)>,
+        path_map: &HashMap<Coordinate, usize>,
     ) {
         let base_offset = 10.0;
-        let base_colour = random_base_color();
-        let max_steps = path_map
-            .values()
-            .map(|(steps, _)| *steps)
-            .max()
-            .unwrap_or(100);
+        let base_colour = random_base_color(x_offset, y_offset, environment.path_followed.len());
+        let max_steps = path_map.values().max().unwrap_or(&100);
         for row in &environment.maze.grid {
             for cell in row {
                 draw_cell_coloured(
@@ -76,7 +74,7 @@ pub mod render {
                     x_offset,
                     y_offset,
                     path_map,
-                    max_steps,
+                    *max_steps,
                     base_colour,
                     environment,
                 )
@@ -85,8 +83,8 @@ pub mod render {
         }
     }
 
-    fn random_base_color() -> Color {
-        let mut rng = rng();
+    fn random_base_color(x_offset: f32, y_offset: f32, path_len: usize) -> Color {
+        let mut rng = StdRng::seed_from_u64(x_offset as u64 + y_offset as u64 + path_len as u64);
         let hue: f32 = rng.random_range(0.0..360.0);
         let (r, g, b) = hsv_to_rgb(hue, 1.0, 1.0);
         Color::new(r, g, b, 1.0)
@@ -116,7 +114,7 @@ pub mod render {
         offset: f32,
         x_offset: f32,
         y_offset: f32,
-        path_map: &HashMap<Coordinate, (usize, Coordinate)>,
+        path_map: &HashMap<Coordinate, usize>,
         max_steps: usize,
         random_colour: Color,
         environment: &Environment,
@@ -124,7 +122,7 @@ pub mod render {
         let x = cell.x as f32 * cell_size + offset + x_offset;
         let y = cell.y as f32 * cell_size + offset + y_offset;
         let coordinates = (cell.x, cell.y);
-        let base_color = if let Some((steps, _)) = path_map.get(&coordinates) {
+        let base_color = if let Some(steps) = path_map.get(&coordinates) {
             // Clamp steps to a maximum for color normalization
             let normalized = (*steps as f32 / max_steps as f32).min(1.0);
             let brightness = 1.0 - normalized;
@@ -253,7 +251,11 @@ pub mod render {
         bools.iter().all(|&b| b)
     }
 
-    pub async fn render_mazes(environments: Vec<Environment>, cell_size: f32) {
+    pub async fn render_mazes(
+        environments: Vec<Environment>,
+        cell_size: f32,
+        coloured_heatmap: bool,
+    ) {
         println!("RUNNNING MAZES {}", environments.len());
         let (rows, columns) = calculate_number_of_potential_screens(
             (WINDOW_WIDTH as usize, WINDOW_HEIGHT as usize),
@@ -275,6 +277,12 @@ pub mod render {
             let mut step = 0;
 
             while !is_array_all_true(&array_of_complete) {
+                if is_key_pressed(KeyCode::Space) {
+                    println!("Space pressed - skipping current maze batch.");
+                    next_frame().await; // let the frame advance
+                    sleep(Duration::from_millis(300));
+                    break; // only break this batch loop, continue to next one
+                }
                 let mut screens_displayed = 0;
 
                 for row in 0..rows {
@@ -289,24 +297,35 @@ pub mod render {
                             continue;
                         }
 
-                        let step_to_use =
-                            min(step, environments[env_index].path_followed.len() - 1);
-                        if step_to_use >= environments[env_index].path_followed.len() - 1 {
-                            array_of_complete[idx] = true;
+                        if coloured_heatmap {
+                            draw_coloured_maze(
+                                &environments[env_index],
+                                cell_size,
+                                cell_size * (col * (environments[0].maze.width + 2)) as f32,
+                                cell_size * (row * (environments[0].maze.height + 2)) as f32,
+                                &environments[env_index].overall_visited,
+                            )
+                            .await;
+                        } else {
+                            let step_to_use =
+                                min(step, environments[env_index].path_followed.len() - 1);
+                            if step_to_use >= environments[env_index].path_followed.len() - 1 {
+                                array_of_complete[idx] = true;
+                            }
+                            draw_maze(
+                                &environments[env_index],
+                                cell_size,
+                                &visited_nodes[idx],
+                                step_to_use,
+                                cell_size * (col * (environments[0].maze.width + 2)) as f32,
+                                cell_size * (row * (environments[0].maze.height + 2)) as f32,
+                            )
+                            .await;
+                            visited_nodes[idx]
+                                .insert(environments[env_index].path_followed[step_to_use].0);
                         }
-
-                        draw_maze(
-                            &environments[env_index],
-                            cell_size,
-                            &visited_nodes[idx],
-                            step_to_use,
-                            cell_size * (col * (environments[0].maze.width + 2)) as f32,
-                            cell_size * (row * (environments[0].maze.height + 2)) as f32,
-                        )
-                        .await;
-                        visited_nodes[idx]
-                            .insert(environments[env_index].path_followed[step_to_use].0);
                         screens_displayed += 1;
+
                         if screens_displayed >= amount_of_screens {
                             break;
                         }
@@ -319,7 +338,9 @@ pub mod render {
                 sleep(Duration::from_millis(50));
                 step += 1;
             }
-            sleep(Duration::from_millis(3000));
+            if is_array_all_true(&array_of_complete) {
+                sleep(Duration::from_millis(3000));
+            } 
         }
     }
 }

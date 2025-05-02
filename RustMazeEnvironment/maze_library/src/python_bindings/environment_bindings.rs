@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     direction::Direction,
-    environment::environment::{Coordinate, Environment}, maze::maze::Maze, maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
+    environment::environment::{Coordinate, Environment},
+    maze::maze::Maze,
+    maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
 };
 
 #[pyclass]
@@ -13,7 +16,18 @@ pub struct Action {
     pub direction: usize,
     pub run: usize,
 }
-
+#[pyclass]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReportCard {
+    #[pyo3(get)]
+    pub total_steps: usize,
+    #[pyo3(get)]
+    pub best_run_penalty: usize,
+    #[pyo3(get)]
+    pub best_run_steps: usize,
+    #[pyo3(get)]
+    pub best_run: usize,
+}
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct ActionResult {
@@ -127,6 +141,23 @@ fn calculate_manhattan_distance(pos1: Coordinate, pos2: (f32, f32)) -> f32 {
 }
 
 impl Environment {
+    pub fn generate_report_card(&self) -> ReportCard {
+        let (mut best_run_steps, mut best_run_penalty, mut best_run) = (usize::MAX, 0, 0);
+        for i in 0..self.get_current_run() {
+            let (total_run_steps, total_run_penalty) = self.calculate_run_score(i);
+            if total_run_steps + total_run_penalty < best_run_steps + best_run_penalty {
+                (best_run_steps, best_run_penalty, best_run) =
+                    (total_run_steps, total_run_penalty, i)
+            }
+        }
+        ReportCard {
+            total_steps: self.steps,
+            best_run_steps,
+            best_run_penalty,
+            best_run,
+        }
+    }
+
     fn calculate_reward_for_solving(
         &self,
         old_location: Coordinate,
@@ -210,7 +241,8 @@ impl Environment {
 
         ActionResult {
             observation: Observation::new(&self, old_location),
-            reward: reward * (steps_taken as f32).max(1.0),
+            reward: (reward * (steps_taken as f32).max(1.0))
+                * (action.run as f32 / self.config.python_config.mini_runs_per_episode as f32),
             is_done,
             is_truncated,
         }
@@ -223,7 +255,7 @@ impl Environment {
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }
 
-    pub fn reset_and_regenerate(&mut self ) -> Vec<f32> {
+    pub fn reset_and_regenerate(&mut self) -> Vec<f32> {
         let mut maze = Maze::init_maze(self.maze.width, self.maze.height);
         let walls = select_maze_algorithm(&maze, None, &MazeType::BinaryTree);
         maze.break_walls_for_path(walls);

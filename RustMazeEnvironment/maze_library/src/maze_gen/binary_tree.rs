@@ -3,7 +3,7 @@ use rand::{rngs::StdRng, Rng};
 use crate::{
     direction::Direction,
     environment::environment::Coordinate,
-    maze::maze::{directional_movement, Maze},
+    maze::maze::Maze,
 };
 
 pub fn random_binary_maze(maze: &Maze, mut rng: StdRng) -> Vec<(Coordinate, Direction)> {

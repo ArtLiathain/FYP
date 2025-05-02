@@ -43,9 +43,23 @@ pub enum Commands {
 
     /// Display a maze with given parameters
     Display {
-        /// Input string (e.g., display
+        /// First filename in sequence
         #[arg(short, long, required = true)]
-        files_location: String,
+        filename: String,
+
+        /// Starting number
+        #[arg(short, long, default_value_t = 0)]
+        start: usize,
+
+        /// Number of files to iterate over
+        #[arg(short, long, default_value_t = 5)]
+        count: usize,
+    },
+    /// Display a maze with given parameters
+    ColouredDisplay {
+        /// First filename in sequence
+        #[arg(short, long, required = true)]
+        filename: String,
 
         /// Starting number
         #[arg(short, long, default_value_t = 0)]

@@ -26,14 +26,7 @@ pub mod environment {
         #[serde(skip)]
         pub weighted_graph: HashMap<Coordinate, HashMap<Direction, usize>>,
     }
-    #[cfg_attr(feature = "python", pyo3::pyclass)]
-    #[derive(Debug, Serialize, Deserialize, Clone)]
-    pub struct ReportCard {
-        pub total_steps: usize,
-        pub best_run_penalty: usize,
-        pub best_run_steps: usize,
-        pub best_run: usize,
-    }
+    
 
     impl Environment {
         pub fn new(env_config: EnvConfig) -> Environment {
@@ -117,22 +110,7 @@ pub mod environment {
             self.path_followed[self.path_followed.len() - 1].1
         }
 
-        pub fn generate_report_card(&self) -> ReportCard {
-            let (mut best_run_steps, mut best_run_penalty, mut best_run) = (usize::MAX, 0, 0);
-            for i in 0..self.get_current_run() {
-                let (total_run_steps, total_run_penalty) = self.calculate_run_score(i);
-                if total_run_steps + total_run_penalty < best_run_steps + best_run_penalty {
-                    (best_run_steps, best_run_penalty, best_run) =
-                        (total_run_steps, total_run_penalty, i)
-                }
-            }
-            ReportCard {
-                total_steps: self.steps,
-                best_run_steps,
-                best_run_penalty,
-                best_run,
-            }
-        }
+        
 
         pub fn calculate_run_score(&self, run_to_score: usize) -> (usize, usize) {
             let filtered_path: Vec<Coordinate> = self

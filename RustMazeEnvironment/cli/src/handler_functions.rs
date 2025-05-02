@@ -4,8 +4,12 @@ use std::{
 };
 
 use maze_library::{
-    environment::environment::Environment, environment_config::EnvConfig, exploring_algorithms::{explore_handler::ExploreAlgorithm, wall_following::follow_wall_explore}, maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType}, solving_algorithms::{dfs_search::solve_maze_dfs, dijkstra::dijkstra_solve, solve_handler::{select_maze_solve_algorithm, SolveAlgorithm}}
+    environment::environment::Environment,
+    environment_config::EnvConfig,
+    maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
+    solving_algorithms::solve_handler::{select_maze_solve_algorithm, SolveAlgorithm},
 };
+use regex::Regex;
 
 pub fn read_environment_from_file(filename: &str) -> Result<Environment, Error> {
     let mut contents = String::new();
@@ -62,9 +66,22 @@ pub fn generate_environment(
     env.maze.break_walls_for_path(extra_walls);
     env
 }
- 
-pub fn solve_maze(env : &mut Environment, algorithm: &SolveAlgorithm) {
-    let path = select_maze_solve_algorithm(env, algorithm);
-    
-}   
 
+pub fn extract_prefix(path: &str) -> (String, usize) {
+    // Define the regular expression to capture everything up until the last number and .json
+    let re = Regex::new(r"^(.*(?:\/[a-zA-Z0-9_]+)+)(\d+)\.json$").unwrap();
+
+    // Apply the regex to the input path
+    if let Some(captures) = re.captures(path) {
+        // The first captured group is the path and name up to the number
+        // The second captured group is the number
+        let path_and_name = captures.get(1).unwrap().as_str().to_string();
+        let number = captures.get(2).unwrap().as_str().to_string();
+        match number.parse::<usize>() {
+            Ok(number) => (path_and_name, number),
+            Err(_) => panic!("filename must follow <NAME><NUMBER>.json"), // Return None if the regex didn't match
+        }
+    } else {
+        panic!("filename must follow <NAME><NUMBER>.json") // Return None if the regex didn't match
+    }
+}

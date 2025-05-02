@@ -1,6 +1,6 @@
 use std::fmt;
 
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::environment::environment::Coordinate;
