@@ -1,3 +1,0 @@
-epsilon_start,epsilon_min,replay_buffer_size,steps_per_episode,target_update_freq,random_seed,maze_width,maze_height,maze_imperfections,input_dim,n_outputs,log_every,q_log_every,plot_every,train_after,learning_rate,gamma,epsilon_decay_episodes,batch_size,episodes,hidden_layers,activation,run_id,mean_reward,max_reward,min_reward
-1.0,0.01,10000,3000,500,42,10,10,5,19,4,1000,500,100,0.33333,5e-05,0.96,0.9,128,6000,"[64, 64, 64]",elu,0,-19.863266554127136,10.100000381469727,-70.2999991774559
-1.0,0.01,10000,3000,500,42,10,10,5,19,4,1000,500,100,0.33333,1e-05,0.96,0.9,128,6000,"[64, 64, 64]",elu,1,-20.967182316819827,74.63912695646286,-68.79999947547913
