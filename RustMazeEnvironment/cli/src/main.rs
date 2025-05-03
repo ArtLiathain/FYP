@@ -8,13 +8,7 @@ use handler_functions::{
 use log::info;
 use macroquad::window::{next_frame, Conf};
 use maze_library::{
-    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH},
-    environment::environment::Environment,
-    environment_config::{EnvConfig, PythonConfig},
-    exploring_algorithms::explore_handler::explore_maze_with,
-    maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
-    render::render::{draw_maze, render_mazes},
-    solving_algorithms::{dijkstra::dijkstra_graph, solve_handler::select_maze_solve_algorithm},
+    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, environment_config::{EnvConfig, PythonConfig}, exploring_algorithms::explore_handler::explore_maze_with, maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType}, render_system::{render::render::render_mazes, render_maze::draw_maze}, solving_algorithms::{dijkstra::dijkstra_graph, solve_handler::select_maze_solve_algorithm}
 };
 mod cli;
 mod handler_functions;

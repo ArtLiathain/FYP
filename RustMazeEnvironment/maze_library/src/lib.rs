@@ -6,7 +6,7 @@ pub mod maze;
 pub mod maze_gen;
 pub mod exploring_algorithms;
 pub mod solving_algorithms;
-pub mod render;
+pub mod render_system;
 mod map_vec_conversion;
 
 #[cfg(feature = "python")]

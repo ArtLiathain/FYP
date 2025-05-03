@@ -12,7 +12,7 @@ pub mod python_bindings {
         environment::environment::Environment,
         environment_config::{EnvConfig, PythonConfig},
         maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
-        python_bindings::environment_bindings::{Action, ActionResult, ReportCard},
+        python_bindings::{environment_bindings::{Action, ActionResult}, report_card::ReportCard},
     };
 
     #[pyfunction(
@@ -59,7 +59,7 @@ pub mod python_bindings {
         text_signature = "(direction, run)"
     )]
     fn create_action(direction: usize, run: usize) -> PyResult<Action> {
-        Ok(Action { direction, run })
+        Ok(Action { direction, run : run + 1})
     }
 
     /// Formats the sum of two numbers as string.
