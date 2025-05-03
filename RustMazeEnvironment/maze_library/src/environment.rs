@@ -18,6 +18,7 @@ pub mod environment {
         pub previous_direction: Option<Direction>,
         pub maze: Maze,
         pub steps: usize,
+        pub total_steps: usize,
         pub config: EnvConfig,
         #[serde(skip)]
         pub visited: HashMap<Coordinate, usize>,
@@ -91,12 +92,33 @@ pub mod environment {
                 overall_visited: HashMap::from([(maze.get_starting_point(), 0)]),
                 maze,
                 steps: 0,
+                total_steps: 0,
                 weighted_graph: HashMap::new(),
             }
         }
     }
 
     impl Environment {
+        
+
+        pub fn mark_nearby_as_visited(&mut self) {
+            for direction in [
+                Direction::North,
+                Direction::South,
+                Direction::East,
+                Direction::West,
+            ] {
+                let new_coords = match self.maze.move_from(&direction, &self.current_location, 1) {
+                    Ok(new) => new,
+                    Err(_) => continue,
+                };
+                if self.overall_visited.contains_key(&new_coords) {
+                    continue;
+                }
+                self.overall_visited.insert(new_coords, 0);
+            }
+        }
+
         pub fn move_from_current(&mut self, direction: &Direction, run: usize) -> usize {
             let steps = self
                 .weighted_graph
@@ -113,6 +135,7 @@ pub mod environment {
                 self.path_followed.push((intermediary_step, run));
                 *self.visited.entry(intermediary_step).or_insert(0) += 1;
                 *self.overall_visited.entry(intermediary_step).or_insert(0) += 1;
+                self.mark_nearby_as_visited();
             }
             match self
                 .maze
@@ -122,6 +145,7 @@ pub mod environment {
                     self.path_followed.push((new_loc, run));
                     *self.visited.entry(new_loc).or_insert(0) += 1;
                     *self.overall_visited.entry(new_loc).or_insert(0) += 1;
+                    self.mark_nearby_as_visited();
                     self.previous_direction = Some(*direction);
                     self.current_location = new_loc;
                     return steps;

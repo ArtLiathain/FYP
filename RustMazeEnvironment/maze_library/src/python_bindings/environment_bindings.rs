@@ -150,6 +150,14 @@ impl Observation {
             1.0 - self.current_visited_amount as f32
                 / env.config.python_config.allowed_revisits as f32,
         );
+        vec.push(
+            if env.get_current_run() >= env.config.python_config.mini_explore_runs_per_episode {
+                1.0
+            } else {
+                0.0
+            },
+        );
+        vec.extend(env.get_5x5_features());
         vec
     }
 }
@@ -218,7 +226,7 @@ impl Environment {
             &self.weighted_graph,
         );
         ReportCard {
-            total_steps: self.steps,
+            total_steps: self.total_steps,
             average_path_length: average(&path_lengths),
             full_turns_done: average(&reverse_counts),
             success_rate_in_exploitation: average(&exits_found),
@@ -240,7 +248,7 @@ impl Environment {
     ) -> (bool, bool, f32) {
         let mut is_done = false;
         let mut is_truncated = false;
-        let mut reward = -0.05;
+        let mut reward = -0.1;
         let end = self.maze.get_perfect_end_centre();
         if old_direction.is_some() {
             //This is actually the new direction due to it being caclulated after moving
@@ -253,26 +261,19 @@ impl Environment {
 
         let number_visits = *self.visited.get(&self.current_location).unwrap_or(&0);
         if number_visits > 0 {
-            reward -= f32::min(0.5, number_visits as f32 * 0.15);
-        } else {
-            reward += 1.0;
-        }
+            reward -= f32::min(0.75, number_visits as f32 * 0.25);
+        } 
 
         if calculate_manhattan_distance(self.current_location, end)
             < calculate_manhattan_distance(old_location, end)
-            && number_visits < 2
+            && number_visits == 0
         {
             reward += 1.0;
         }
 
         //Running into a wall essentially
         if self.current_location == old_location {
-            reward -= 3.0;
-        }
-
-        if number_visits > self.config.python_config.allowed_revisits {
-            is_truncated = true;
-            reward -= 10.0;
+            reward -= 1.0;
         }
 
         if self.maze.end.contains(&self.current_location) {
@@ -285,6 +286,52 @@ impl Environment {
             is_truncated,
             reward * (run as f32 / self.config.python_config.mini_exploit_runs_per_episode as f32),
         )
+    }
+
+    fn get_5x5_features(&self) -> Vec<f32> {
+        let mut features = Vec::with_capacity(5 * 5 * 7);
+
+        for dy in -2..=2 {
+            for dx in -2..=2 {
+                let x = self.current_location.0 as i32 + dx;
+                let y = self.current_location.1 as i32 + dy;
+
+                match self.maze.in_bounds((x, y)) {
+                    true => {
+                        let coord = (x as usize, y as usize);
+                        let cell = self.maze.get_cell(coord); // -> [bool; 4]
+
+                        features.extend([
+                            cell.walls.contains(&Direction::North) as u8 as f32,
+                            cell.walls.contains(&Direction::South) as u8 as f32,
+                            cell.walls.contains(&Direction::East) as u8 as f32,
+                            cell.walls.contains(&Direction::West) as u8 as f32,
+                        ]);
+                        features.push(if self.overall_visited.contains_key(&coord) {
+                            1.0
+                        } else {
+                            0.0
+                        });
+                        features.push(0.0); // not out of bounds
+                        features.push(if coord == self.current_location {
+                            1.0
+                        } else {
+                            0.0
+                        });
+                    }
+                    false =>
+                    // Out of bounds: all walls, not visited, out_of_bounds = 1
+                    {
+                        features.extend([1.0, 1.0, 1.0, 1.0]); // walls
+                        features.push(0.0); // visited
+                        features.push(1.0); // out of bounds
+                        features.push(0.0);
+                    } // agent,
+                }
+            }
+        }
+
+        features
     }
     fn calculate_reward_for_exploring(
         &self,
@@ -309,14 +356,14 @@ impl Environment {
             reward += 1.0;
         }
 
-        if number_visits > self.config.python_config.exploration_steps {
+        if self.steps > self.config.python_config.exploration_steps {
             is_truncated = true;
         }
 
         (
             false,
             is_truncated,
-            reward * (run as f32 / self.config.python_config.mini_exploit_runs_per_episode as f32),
+            reward * (run as f32 / self.config.python_config.mini_explore_runs_per_episode as f32),
         )
     }
 
@@ -351,10 +398,10 @@ impl Environment {
         let (is_done, is_truncated, reward);
         if action.run > self.config.python_config.mini_explore_runs_per_episode {
             (is_done, is_truncated, reward) =
-                self.calculate_reward_for_solving(old_location, old_direction, action.run);
+                self.calculate_reward_for_solving(old_location, old_direction, action.run + 1 - self.config.python_config.mini_explore_runs_per_episode);
         } else {
             (is_done, is_truncated, reward) =
-                self.calculate_reward_for_exploring(old_direction, action.run);
+                self.calculate_reward_for_exploring(old_direction, action.run + 1);
         }
 
         ActionResult {
@@ -368,6 +415,8 @@ impl Environment {
 
     pub fn reset(&mut self) -> Vec<f32> {
         self.visited.clear();
+        self.total_steps += self.steps;
+        self.steps = 0;
         self.current_location = self.maze.start;
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }
@@ -375,6 +424,8 @@ impl Environment {
         if self.config.python_config.mini_explore_runs_per_episode <= run {
             self.visited.clear();
         }
+        self.total_steps += self.steps;
+        self.steps = 0;
         self.current_location = self.maze.start;
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }
@@ -397,6 +448,7 @@ impl Environment {
         self.visited.clear();
         self.overall_visited.clear();
         self.steps = 0;
+        self.total_steps = 0;
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }
 
