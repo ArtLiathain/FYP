@@ -12,6 +12,7 @@ pub async fn draw_coloured_maze(
     x_offset: f32,
     y_offset: f32,
     path_map: &HashMap<Coordinate, usize>,
+    inverse: bool
 ) {
     let base_offset = 10.0;
     let max_steps = path_map.values().max().unwrap_or(&100);
@@ -27,6 +28,7 @@ pub async fn draw_coloured_maze(
                 *max_steps,
                 Color::from_rgba(30, 144, 255, 255),
                 environment,
+                inverse
             )
             .await;
         }
@@ -43,14 +45,18 @@ async fn draw_cell_coloured(
     max_steps: usize,
     random_colour: Color,
     environment: &Environment,
+    inverse: bool
 ) {
-    let x = cell.x as f32 * cell_size + offset + x_offset;
-    let y = cell.y as f32 * cell_size + offset + y_offset;
-    let coordinates = (cell.x, cell.y);
+    let x = cell.coordinate.0 as f32 * cell_size + offset + x_offset;
+    let y = cell.coordinate.1 as f32 * cell_size + offset + y_offset;
+    let coordinates = (cell.coordinate.0, cell.coordinate.1);
     let base_color = if let Some(steps) = path_map.get(&coordinates) {
         // Clamp steps to a maximum for color normalization
-        let normalized = (*steps as f32 / max_steps as f32).min(1.0);
-        let brightness = 1.0 - normalized;
+        let mut normalized = (*steps as f32 / max_steps as f32).min(1.0);
+        if inverse {
+            normalized = 1.0 - normalized;
+        }
+        let brightness = 1.0 - normalized + 0.2;
         Color::new(
             random_colour.r * brightness,
             random_colour.g * brightness,
@@ -58,7 +64,12 @@ async fn draw_cell_coloured(
             1.0,
         )
     } else {
-        random_colour
+        Color::new(
+            random_colour.r * 0.2,
+            random_colour.g * 0.2,
+            random_colour.b * 0.2,
+            1.0,
+        )
     };
     if cell.walls.len() == 4 {
         draw_rectangle(x, y, cell_size, cell_size, BLACK);

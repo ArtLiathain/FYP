@@ -1,16 +1,11 @@
-use std::{collections::HashMap, path, vec};
-
-use num_traits::ToPrimitive;
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     constants::constants::NUMBER_OF_INPUT_FEATURES,
     direction::Direction,
-    environment::environment::{calcualte_score_for_coordinate_vector, Coordinate, Environment},
+    environment::environment::{Coordinate, Environment},
     maze::maze::Maze,
     maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
-    solving_algorithms::dijkstra::dijkstra_solve,
 };
 
 use super::environment_observations::{calculate_manhattan_distance, Observation};
@@ -53,16 +48,15 @@ impl Environment {
         let dir = Direction::from(action.direction);
         let old_direction = self.previous_direction;
         let steps_taken = self.move_from_current(&dir, action.run);
+        if steps_taken == 0 {
+            self.steps += 1
+        }
         let (is_done, is_truncated, reward);
         if action.run > self.config.python_config.mini_explore_runs_per_episode {
-            (is_done, is_truncated, reward) = self.calculate_reward_for_solving(
-                old_location,
-                old_direction,
-                action.run - self.config.python_config.mini_explore_runs_per_episode,
-            );
-        } else {
             (is_done, is_truncated, reward) =
-                self.calculate_reward_for_exploring(old_direction, action.run);
+                self.calculate_reward_for_solving(old_location, old_direction);
+        } else {
+            (is_done, is_truncated, reward) = self.calculate_reward_for_exploring(old_direction);
         }
 
         ActionResult {
@@ -132,17 +126,15 @@ impl Environment {
     }
 }
 
-
 impl Environment {
     fn calculate_reward_for_solving(
         &self,
         old_location: Coordinate,
         old_direction: Option<Direction>,
-        run: usize,
     ) -> (bool, bool, f32) {
         let mut is_done = false;
         let mut is_truncated = false;
-        let mut reward = -0.1;
+        let mut reward = 0.0;
         let end = self.maze.get_perfect_end_centre();
         if old_direction.is_some() {
             //This is actually the new direction due to it being caclulated after moving
@@ -150,19 +142,18 @@ impl Environment {
                 .previous_direction
                 .unwrap()
                 .turn_amount(&old_direction.unwrap());
-            reward -= difference as f32 * 0.25;
+            reward -= difference as f32 * 0.1;
         }
 
-        let number_visits = *self.visited.get(&self.current_location).unwrap_or(&0);
+        let number_visits = *self.visited.get(&self.current_location).unwrap_or(&1) - 1;
         if number_visits > 0 {
-            reward -= f32::min(0.75, number_visits as f32 * 0.25);
+            reward -= f32::min(0.5, number_visits as f32 * 0.15);
         }
 
         if calculate_manhattan_distance(self.current_location, end)
             < calculate_manhattan_distance(old_location, end)
-            && number_visits == 0
         {
-            reward += 1.0;
+            reward += 0.5;
         }
         //Running into a wall essentially
         if self.current_location == old_location {
@@ -170,7 +161,7 @@ impl Environment {
         }
 
         if self.steps > self.config.python_config.exploration_steps {
-            reward -= 10.0;
+            reward -= 5.0;
             is_truncated = true;
         }
 
@@ -179,17 +170,12 @@ impl Environment {
             reward += 30.0 + 500.0 / self.steps as f32;
         }
 
-        (
-            is_done,
-            is_truncated,
-            reward * (run as f32 / self.config.python_config.mini_exploit_runs_per_episode as f32),
-        )
+        (is_done, is_truncated, reward)
     }
 
     fn calculate_reward_for_exploring(
         &self,
         old_direction: Option<Direction>,
-        run: usize,
     ) -> (bool, bool, f32) {
         let mut is_truncated = false;
         let mut reward = 0.1;
@@ -199,25 +185,32 @@ impl Environment {
                 .previous_direction
                 .unwrap()
                 .turn_amount(&old_direction.unwrap());
-            reward -= difference as f32 * 0.25;
+            reward -= difference as f32 * 0.1;
         }
 
-        let number_visits = *self.visited.get(&self.current_location).unwrap_or(&0);
-        if number_visits > 0 {
-            reward -= f32::min(1.0, number_visits as f32 * 0.3);
-        } else {
-            reward += 1.0;
-        }
+        let number_visits = *self
+            .overall_visited
+            .get(&self.current_location)
+            .unwrap_or(&1) - 1;
+        let recent_number_visits = *self
+            .visited
+            .get(&self.current_location)
+            .unwrap_or(&1) - 1;
+        if number_visits == 0 {
+            reward += 0.15
+             * self.overall_visited.len() as f32;
+            }
+            if recent_number_visits > 0 {
+                reward -= f32::min(1.5, number_visits as f32 * 0.3);
+            }
+            else {
+                reward = 0.0
+            }
 
-        if self.steps > self.config.python_config.exploration_steps {
+        if self.steps > self.config.python_config.exploration_steps * 2 {
             is_truncated = true;
         }
-
-        (
-            false,
-            is_truncated,
-            reward * (run as f32 / self.config.python_config.mini_explore_runs_per_episode as f32),
-        )
+        
+        (false, is_truncated, reward)
     }
 }
-

@@ -27,14 +27,14 @@ pub async fn draw_maze(
     let current_run = environment.path_followed[step].1;
     draw_text(
         &format!(
-            "Run {}, Currently: {}",
+            "Run {}, {}",
             current_run,
             if current_run
-                >= environment
+                > environment
                     .config
                     .python_config
                     .mini_explore_runs_per_episode
-                    - 1
+                    
             {
                 "Solving"
             } else {
@@ -118,9 +118,9 @@ pub async fn draw_cell(
     x_offset: f32,
     y_offset: f32,
 ) {
-    let x = cell.x as f32 * cell_size + offset + x_offset;
-    let y = cell.y as f32 * cell_size + offset + y_offset;
-    let coordinates = (cell.x, cell.y);
+    let x = cell.coordinate.0 as f32 * cell_size + offset + x_offset;
+    let y = cell.coordinate.1 as f32 * cell_size + offset + y_offset;
+    let coordinates = (cell.coordinate.0, cell.coordinate.1);
 
     if cell.walls.len() == 4 {
         draw_rectangle(x, y, cell_size, cell_size, WHITE);

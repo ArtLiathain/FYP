@@ -1,20 +1,12 @@
 pub mod render {
     use crate::constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH};
-    use crate::direction::Direction;
     use crate::environment::environment::{Coordinate, Environment};
-    use crate::maze::maze::Cell;
     use crate::render_system::render_coloured_mazes::draw_coloured_maze;
     use crate::render_system::render_maze::draw_maze;
-    use macroquad::color::{
-        Color, BLACK, DARKPURPLE, GOLD, GREEN, LIGHTGRAY, PINK, RED, WHITE, YELLOW,
-    };
-    use macroquad::input::{is_key_down, is_key_pressed, KeyCode};
-    use macroquad::shapes::{draw_line, draw_rectangle};
-    use macroquad::text::draw_text;
-    use macroquad::window::{clear_background, next_frame};
-    use rand::{rng, Rng, SeedableRng};
+    use macroquad::input::{is_key_pressed, KeyCode};
+    use macroquad::window::next_frame;
     use std::cmp::min;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashSet;
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -39,6 +31,7 @@ pub mod render {
         coloured_heatmap: bool,
     ) {
         println!("RUNNNING MAZES {}", environments.len());
+        let full_episode = environments[0].maze.number_of_cells();
         let (rows, columns) = calculate_number_of_potential_screens(
             (WINDOW_WIDTH as usize, WINDOW_HEIGHT as usize),
             (
@@ -66,14 +59,14 @@ pub mod render {
                     break; // only break this batch loop, continue to next one
                 }
                 if is_key_pressed(KeyCode::Right) {
-                    println!("Right pressed - skipping 500 steps.");
-                    skip_steps = step + 500;
+                    println!("Right pressed - skipping {} steps.", full_episode);
+                    skip_steps = step + full_episode;
                     next_frame().await; // let the frame advance
                     sleep(Duration::from_millis(300));
                 }
                 if is_key_pressed(KeyCode::Up) {
-                    println!("Up pressed - skipping 2000 steps.");
-                    skip_steps = step + 2000;
+                    println!("Up pressed - skipping {} steps.", full_episode*4);
+                    skip_steps = step + full_episode*4;
                     next_frame().await; // let the frame advance
                     sleep(Duration::from_millis(300));
                 }
@@ -99,6 +92,11 @@ pub mod render {
                                 cell_size * (col * (environments[0].maze.width + 2)) as f32,
                                 cell_size * (row * (environments[0].maze.height + 2)) as f32,
                                 &environments[env_index].overall_visited,
+                                if environments[env_index].path_followed.len() > 5 {
+                                    true
+                                } else {
+                                    false
+                                },
                             )
                             .await;
                         } else {

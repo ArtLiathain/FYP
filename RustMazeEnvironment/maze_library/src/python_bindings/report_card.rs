@@ -4,7 +4,10 @@ use num_traits::ToPrimitive;
 use pyo3::pyclass;
 use serde::{Deserialize, Serialize};
 
-use crate::{environment::environment::{calcualte_score_for_coordinate_vector, Coordinate, Environment}, solving_algorithms::dijkstra::dijkstra_solve};
+use crate::{
+    environment::environment::{calcualte_score_for_coordinate_vector, Coordinate, Environment},
+    solving_algorithms::dijkstra::dijkstra_solve,
+};
 
 #[pyclass]
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -61,7 +64,7 @@ fn average<T: ToPrimitive>(nums: &[T]) -> f32 {
     sum / nums.len() as f32
 }
 
-impl Environment{
+impl Environment {
     pub fn generate_report_card(&self) -> ReportCard {
         let mut path_lengths = vec![];
         let mut hit_counts = vec![];
@@ -84,7 +87,9 @@ impl Environment{
             hit_counts.push(hit_count);
             exits_found.push(if found_exit { 1 } else { 0 });
             reverse_counts.push(reverse_count);
-            exploit_runs.push(total_run_score);
+            if found_exit {
+                exploit_runs.push(total_run_score);
+            }
         }
         let (score, _, _, _) = calcualte_score_for_coordinate_vector(
             &dijkstra_solve(self, self.maze.start, *self.maze.end.iter().next().unwrap()),
@@ -105,6 +110,3 @@ impl Environment{
         }
     }
 }
-
-    
-    

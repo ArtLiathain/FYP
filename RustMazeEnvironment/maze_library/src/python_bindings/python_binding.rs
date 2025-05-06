@@ -42,7 +42,7 @@ pub mod python_bindings {
                 exploration_steps: if exploration_steps.is_some() {
                     exploration_steps.unwrap()
                 } else {
-                    width * height * 2
+                    width * height
                 },
             },
         );

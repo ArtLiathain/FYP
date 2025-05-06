@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use pyo3::pyclass;
 
-use crate::{direction::Direction, environment::environment::{Coordinate, Environment}};
-
+use crate::{
+    direction::Direction,
+    environment::environment::{Coordinate, Environment},
+};
 
 #[pyclass]
 #[derive(Debug, Clone)]
@@ -56,14 +58,25 @@ impl Observation {
             Direction::West,
         ];
         for dir in direction_vec.iter() {
-            let path = self.available_paths.get(&dir).unwrap_or(&0);
+            let mut direction_encoding = vec![0.0; 4]; // quasi-one-hot
 
-            // if [Direction::North, Direction::South].contains(&dir) {
-            //     vec.push(*path as f32 / env.maze.height as f32);
-            // } else {
-            //     vec.push(*path as f32 / env.maze.width as f32);
-            // }
-            vec.push(if *path > 0 { 1.0 } else { 0.0 });
+            let steps = *self.available_paths.get(dir).unwrap_or(&0) as f32;
+
+            let norm = match dir {
+                Direction::North | Direction::South => env.maze.height as f32,
+                Direction::East | Direction::West => env.maze.width as f32,
+            };
+
+            let index = match dir {
+                Direction::North => 0,
+                Direction::East => 1,
+                Direction::South => 2,
+                Direction::West => 3,
+            };
+
+            direction_encoding[index] = steps / norm;
+
+            vec.extend(direction_encoding);
         }
 
         vec.push(self.previous_direction as f32);
@@ -134,17 +147,15 @@ impl Observation {
         features
     }
 
-    fn calculate_visited_paths(&self, env : &Environment) -> HashMap<Direction, usize> {
+    fn calculate_visited_paths(&self, env: &Environment) -> HashMap<Direction, usize> {
         env.available_paths()
             .iter()
             .map(|(d, steps)| {
                 (
                     *d,
-                    *env
-                        .visited
+                    *env.visited
                         .get(
-                            &env
-                                .maze
+                            &env.maze
                                 .move_from(&*d, &env.current_location, *steps)
                                 .unwrap(),
                         )

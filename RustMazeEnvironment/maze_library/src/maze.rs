@@ -16,8 +16,7 @@ pub mod maze {
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Cell {
-        pub x: usize,
-        pub y: usize,
+        pub coordinate: Coordinate,
         pub walls: HashSet<Direction>,
     }
 
@@ -28,27 +27,6 @@ pub mod maze {
         pub grid: Vec<Vec<Cell>>,
         pub start: Coordinate,
         pub end: HashSet<Coordinate>,
-    }
-
-    pub fn directional_movement(
-        direction: &Direction,
-        coordinates: &Coordinate,
-        steps: usize,
-    ) -> (i32, i32) {
-        let i32steps = steps as i32;
-        let (x, y) = (coordinates.0 as i32, coordinates.1 as i32);
-        match direction {
-            Direction::North => (x, y - i32steps),
-            Direction::South => (x, y + i32steps),
-            Direction::East => (x + i32steps, y),
-            Direction::West => (x - i32steps, y),
-        }
-    }
-
-
-
-    pub fn to_usize_tuple(coord: (i32, i32)) -> (usize, usize) {
-        (coord.0 as usize, coord.1 as usize)
     }
 
     impl Maze {
@@ -62,8 +40,7 @@ pub mod maze {
                     .map(|x| {
                         (0..height)
                             .map(move |y| Cell {
-                                x,
-                                y,
+                                coordinate: (x, y),
                                 walls: HashSet::from([
                                     Direction::North,
                                     Direction::South,
@@ -132,14 +109,22 @@ pub mod maze {
             &self,
             direction: &Direction,
             coordinates: &Coordinate,
+            steps: usize,
         ) -> Result<Coordinate, MoveError> {
-            if self.grid[coordinates.0][coordinates.1]
-                .walls
-                .contains(direction)
-            {
-                return Err(MoveError::OutOfBounds);
+            let mut current = *coordinates;
+            for _ in 0..steps {
+                if self.grid[coordinates.0][coordinates.1]
+                    .walls
+                    .contains(direction)
+                {
+                    return Err(MoveError::InvalidDirection);
+                }
+                current = match self.move_from(direction, coordinates, 1) {
+                    Ok(c) => c,
+                    Err(_) => return Err(MoveError::InvalidDirection),
+                };
             }
-            self.move_from(direction, coordinates, 1)
+            Ok(current)
         }
 
         pub fn move_from(
@@ -148,7 +133,14 @@ pub mod maze {
             coordinates: &Coordinate,
             steps: usize,
         ) -> Result<Coordinate, MoveError> {
-            let new_coordinates = directional_movement(direction, coordinates, steps);
+            let i32steps = steps as i32;
+            let (x, y) = (coordinates.0 as i32, coordinates.1 as i32);
+            let new_coordinates = match direction {
+                Direction::North => (x, y - i32steps),
+                Direction::South => (x, y + i32steps),
+                Direction::East => (x + i32steps, y),
+                Direction::West => (x - i32steps, y),
+            };
             if !self.in_bounds(new_coordinates) {
                 return Err(MoveError::OutOfBounds);
             }
@@ -219,7 +211,7 @@ pub mod maze {
             let mut steps = 0;
             let mut current = *coordinates;
             loop {
-                current = match self.move_from_with_walls(direction, &current) {
+                current = match self.move_from_with_walls(direction, &current, 1) {
                     Ok(coordinates) => coordinates,
                     Err(_) => return steps,
                 };
@@ -295,18 +287,21 @@ pub mod maze {
                     }
                     let cell = &self.grid[row][column];
                     if !skip_non_decision_nodes {
-                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
-                        decision_set.insert((cell.x, cell.y));
+                        decision_nodes
+                            .insert((cell.coordinate.0, cell.coordinate.1), HashMap::new());
+                        decision_set.insert((cell.coordinate.0, cell.coordinate.1));
                         continue;
                     }
                     let walls: Vec<&Direction> = cell.walls.iter().collect();
                     if walls.len() <= 1 || walls.len() == 3 {
-                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
-                        decision_set.insert((cell.x, cell.y));
+                        decision_nodes
+                            .insert((cell.coordinate.0, cell.coordinate.1), HashMap::new());
+                        decision_set.insert((cell.coordinate.0, cell.coordinate.1));
                     }
                     if walls.len() == 2 && *walls[0] != walls[1].opposite_direction() {
-                        decision_nodes.insert((cell.x, cell.y), HashMap::new());
-                        decision_set.insert((cell.x, cell.y));
+                        decision_nodes
+                            .insert((cell.coordinate.0, cell.coordinate.1), HashMap::new());
+                        decision_set.insert((cell.coordinate.0, cell.coordinate.1));
                     }
                 }
             }
@@ -327,6 +322,5 @@ pub mod maze {
 
             decision_nodes
         }
-        
     }
 }

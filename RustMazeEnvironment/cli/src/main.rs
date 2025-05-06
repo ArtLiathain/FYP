@@ -79,7 +79,7 @@ fn main() {
             let (prefix, start) = extract_prefix(&filename);
             for i in start..start + count {
                 let filename = format!("{}{}.json", prefix, i);
-                let environment = read_environment_from_file(&filename).unwrap();
+                let environment = read_environment_from_file(&filename).expect(&format!("File {} does not exist", filename));
                 environments.push(environment);
             }
             macroquad::Window::from_config(window_conf(), async move {

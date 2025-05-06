@@ -2,10 +2,9 @@ use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap, HashSet},
 };
-
-use crate::{environment::environment::{Coordinate, Environment}, maze::maze::{directional_movement, to_usize_tuple}};
-
-
+use crate::
+    environment::environment::{Coordinate, Environment}
+;
 
 pub fn dijkstra_solve(env: &Environment, start: Coordinate, end: Coordinate) -> Vec<Coordinate> {
     let path_map = dijkstra_graph(env, start);
@@ -50,13 +49,17 @@ pub fn dijkstra_graph(
             .get(&current)
             .unwrap_or(&HashMap::new())
             .iter()
-            .map(|(direction, &steps)| {
-                (
-                    to_usize_tuple(directional_movement(direction, &current, steps)),
-                    steps,
-                )
+            .filter_map(|(direction, &steps)| {
+                match env.maze.move_from(direction, &current, steps) {
+                    Ok(new_coordinates) => {
+                        if visited.contains(&new_coordinates) {
+                            return None;
+                        }
+                        Some((new_coordinates, steps))
+                    }
+                    Err(_) => None,
+                }
             })
-            .filter(|(neighbor, _)| !visited.contains(neighbor))
             .collect();
 
         for (neighbor, weight) in neighbors {
