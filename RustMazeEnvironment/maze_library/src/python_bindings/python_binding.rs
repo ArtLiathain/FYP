@@ -59,7 +59,7 @@ pub mod python_bindings {
         text_signature = "(direction, run)"
     )]
     fn create_action(direction: usize, run: usize) -> PyResult<Action> {
-        Ok(Action { direction, run : run + 1})
+        Ok(Action { direction, run})
     }
 
     /// Formats the sum of two numbers as string.

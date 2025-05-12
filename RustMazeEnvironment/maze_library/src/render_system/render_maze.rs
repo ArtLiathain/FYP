@@ -23,7 +23,6 @@ pub async fn draw_maze(
     x_offset: f32,
     y_offset: f32,
 ) {
-    let base_offset = 20.0;
     let current_run = environment.path_followed[step].1;
     draw_text(
         &format!(
@@ -41,8 +40,8 @@ pub async fn draw_maze(
                 "Exploring"
             }
         ),
-        x_offset + base_offset,
-        y_offset + base_offset - 5.0, // Adjust upward a little
+        x_offset + 30.0,
+        y_offset + 25.0, // Adjust upward a little
         20.0,                         // Font size
         YELLOW,                       // Color (adjust as you like)
     );
@@ -63,13 +62,12 @@ pub async fn draw_maze(
             draw_cell(
                 cell,
                 cell_size,
-                base_offset,
                 environment,
                 visited,
                 step,
                 &path_visited,
-                x_offset,
-                y_offset,
+                x_offset + 30.0,
+                y_offset + 30.0,
             )
             .await;
         }
@@ -110,7 +108,6 @@ pub fn draw_cell_walls(cell: &Cell, cell_size: f32, x: f32, y: f32, thickness: f
 pub async fn draw_cell(
     cell: &Cell,
     cell_size: f32,
-    offset: f32,
     environment: &Environment,
     visited: &HashSet<Coordinate>,
     step: usize,
@@ -118,8 +115,8 @@ pub async fn draw_cell(
     x_offset: f32,
     y_offset: f32,
 ) {
-    let x = cell.coordinate.0 as f32 * cell_size + offset + x_offset;
-    let y = cell.coordinate.1 as f32 * cell_size + offset + y_offset;
+    let x = cell.coordinate.0 as f32 * cell_size + x_offset;
+    let y = cell.coordinate.1 as f32 * cell_size + y_offset;
     let coordinates = (cell.coordinate.0, cell.coordinate.1);
 
     if cell.walls.len() == 4 {

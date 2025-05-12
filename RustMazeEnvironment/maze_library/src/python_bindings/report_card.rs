@@ -60,6 +60,9 @@ fn calculate_run_visited(
 }
 
 fn average<T: ToPrimitive>(nums: &[T]) -> f32 {
+    if nums.is_empty() {
+        return 0.0;
+    }
     let sum: f32 = nums.iter().filter_map(|x| x.to_f32()).sum();
     sum / nums.len() as f32
 }
@@ -74,6 +77,9 @@ impl Environment {
         let mut visited_tracker = HashMap::new();
         let mut percentage_visited = vec![];
         let mut average_visited = vec![];
+        if self.path_followed.len() < 20 {
+            println!("{:?}", self.path_followed);
+        }
         for i in 0..self.config.python_config.mini_explore_runs_per_episode {
             let (average, percentage) = calculate_run_visited(self, &mut visited_tracker, i);
             percentage_visited.push(percentage);
@@ -92,7 +98,11 @@ impl Environment {
             }
         }
         let (score, _, _, _) = calcualte_score_for_coordinate_vector(
-            &dijkstra_solve(self, self.maze.start, *self.maze.end.iter().next().unwrap()),
+            &dijkstra_solve(
+                self,
+                self.maze.start,
+                *self.maze.end.iter().next().expect("Error in end"),
+            ),
             &self.weighted_graph,
         );
         ReportCard {
@@ -108,5 +118,37 @@ impl Environment {
             percentage_visited: average(&percentage_visited),
             average_visits: average(&average_visited),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        environment::environment::{Coordinate, Environment},
+        environment_config::{EnvConfig, PythonConfig},
+        maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType}, solving_algorithms::solve_handler::{select_maze_solve_algorithm, SolveAlgorithm},
+    }; // or wherever it's defined
+    use std::collections::{HashMap, HashSet};
+
+    #[test]
+    fn test_generate_report_card_minimal_env() {
+        // Setup a minimal environment that would trigger generate_report_card
+        let config = EnvConfig::new(9, 9, PythonConfig::default());
+        let mut env = Environment::new(config);
+        let walls = select_maze_algorithm(&env.maze, None, &MazeType::Kruzkals);
+        env.maze.break_walls_for_path(walls);
+        env.weighted_graph = env.maze.convert_to_weighted_graph(None, true);
+        let path = select_maze_solve_algorithm(&env, &SolveAlgorithm::Dijkstra);
+        env.move_path_vec(&path, env.get_current_run());
+
+        let result = std::panic::catch_unwind(|| {
+            let _report_card = env.generate_report_card();
+        });
+
+        assert!(
+            result.is_ok(),
+            "generate_report_card() panicked: {:?}",
+            result
+        );
     }
 }

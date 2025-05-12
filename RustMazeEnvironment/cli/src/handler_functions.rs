@@ -68,7 +68,7 @@ pub fn generate_environment(
 
 pub fn extract_prefix(path: &str) -> (String, usize) {
     // Define the regular expression to capture everything up until the last number and .json
-    let re = Regex::new(r"^(.*\/[a-zA-Z0-9_]*?)(\d+)\.json$").unwrap();
+    let re: Regex = Regex::new(r"^(.*\/[a-zA-Z0-9_]*?)(\d+)\.json$").unwrap();
 
     // Apply the regex to the input path
     if let Some(captures) = re.captures(path) {

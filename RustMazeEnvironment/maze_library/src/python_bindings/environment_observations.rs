@@ -78,12 +78,21 @@ impl Observation {
 
             vec.extend(direction_encoding);
         }
+        let visited_paths = self.calculate_visited_paths(env);
+        for dir in direction_vec.iter() {
+            if *visited_paths.get(dir).unwrap_or(&0) > 0 {
+                vec.push(0.0);
+            }
+            else {
+                vec.push(1.0);
+            }
+        }
 
-        vec.push(self.previous_direction as f32);
         vec.push(self.current_location.0 as f32 / (env.maze.width as f32 - 1.0));
         vec.push(self.current_location.1 as f32 / (env.maze.height as f32 - 1.0));
         vec.push(self.end_node.0 / (env.maze.width as f32 - 1.0));
         vec.push(self.end_node.1 / (env.maze.height as f32 - 1.0));
+        vec.push(self.previous_direction as f32);
         vec.push(self.previous_location.0 as f32 / (env.maze.width as f32 - 1.0));
         vec.push(self.previous_location.1 as f32 / (env.maze.height as f32 - 1.0));
         vec.push(self.manhattan_distance / (env.maze.width + env.maze.height) as f32);

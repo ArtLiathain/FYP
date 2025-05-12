@@ -66,10 +66,13 @@ pub mod environment {
             }
             total_run_penalty += turn_penalty;
 
-            total_run_steps += count_steps
-                .expect("Hashmap get")
-                .get(&direction.unwrap())
-                .expect("direction in nested hashmap");
+            total_run_steps += match count_steps.expect("Hashmap get").get(&direction.unwrap()) {
+                Some(steps) => steps,
+                None => {
+                    panic!("ERROR");
+                }
+            };
+
             prev_direction = direction.unwrap();
         }
         (
@@ -85,11 +88,11 @@ pub mod environment {
             let maze = Maze::init_maze(env_config.maze_width, env_config.maze_height);
             Environment {
                 current_location: maze.start,
-                path_followed: vec![(maze.get_starting_point(), 0)],
                 previous_direction: None,
                 config: env_config,
-                visited: HashMap::from([(maze.get_starting_point(), 0)]),
-                overall_visited: HashMap::from([(maze.get_starting_point(), 0)]),
+                path_followed: Vec::from([(maze.get_starting_point(), 0)]),
+                visited: HashMap::from([(maze.get_starting_point(), 1)]),
+                overall_visited: HashMap::from([(maze.get_starting_point(), 1)]),
                 maze,
                 steps: 0,
                 total_steps: 0,
@@ -99,8 +102,6 @@ pub mod environment {
     }
 
     impl Environment {
-        
-
         pub fn mark_nearby_as_visited(&mut self) {
             for direction in [
                 Direction::North,
@@ -120,41 +121,45 @@ pub mod environment {
         }
 
         pub fn move_from_current(&mut self, direction: &Direction, run: usize) -> usize {
-            let steps = self
+            let steps = *self
                 .weighted_graph
                 .get(&self.current_location)
                 .and_then(|inner_map| inner_map.get(direction))
-                .copied() // Extracts the value as usize instead of &usize
-                .unwrap_or(0);
-            self.steps += steps;
+                .unwrap_or(&0);
+
+            if steps == 0 {
+                self.steps += 1;
+                self.path_followed.push((self.current_location, run));
+                *self.visited.entry(self.current_location).or_insert(0) += 1;
+                *self.overall_visited.entry(self.current_location).or_insert(0) += 1;
+                return 0;
+            }
+            let current_path_length = self.path_followed.len();
             for i in 0..steps {
-                let intermediary_step = self
-                    .maze
-                    .move_from(direction, &self.current_location, i)
-                    .unwrap();
+                let intermediary_step =
+                    match self
+                        .maze
+                        .move_from_with_walls(direction, &self.current_location, 1)
+                    {
+                        Ok(new_loc) => new_loc,
+                        Err(e) => {
+                            error!("MOVE ERROR WITH WEIGHTED GRAPH: {:?}", e);
+                            println!("ERROR {:?}", e);
+                            return i; // Or use a custom error type
+                        }
+                    };
+                self.steps += 1;
                 self.path_followed.push((intermediary_step, run));
                 *self.visited.entry(intermediary_step).or_insert(0) += 1;
                 *self.overall_visited.entry(intermediary_step).or_insert(0) += 1;
-                self.mark_nearby_as_visited();
+                self.current_location = intermediary_step;
             }
-            match self
-                .maze
-                .move_from(direction, &self.current_location, steps)
-            {
-                Ok(new_loc) => {
-                    self.path_followed.push((new_loc, run));
-                    *self.visited.entry(new_loc).or_insert(0) += 1;
-                    *self.overall_visited.entry(new_loc).or_insert(0) += 1;
-                    self.mark_nearby_as_visited();
-                    self.previous_direction = Some(*direction);
-                    self.current_location = new_loc;
-                    return steps;
-                }
-                Err(_e) => {
-                    error!("MOVE ERROR WITH WEIGHTED GRAPH");
-                }
+            self.mark_nearby_as_visited();
+            self.previous_direction = Some(*direction);
+            if current_path_length >= self.path_followed.len() {
+                println!("HUGE ERROR IN THIS STUPID FUNCTION");
             }
-            0
+            steps
         }
 
         pub fn available_paths(&self) -> HashMap<Direction, usize> {
@@ -192,6 +197,9 @@ pub mod environment {
                 .filter(|(_, run)| *run == run_to_score)
                 .map(|(coord, _)| *coord)
                 .collect();
+            if filtered_path.len() <= 1 {
+                return (0, 0, 0, 0.0, false);
+            }
             let (total_run_score, hit_count, reverse_count, average_path_length) =
                 calcualte_score_for_coordinate_vector(&filtered_path, &self.weighted_graph);
             (
@@ -229,6 +237,33 @@ pub mod environment {
             let json = env.to_json();
             let parsed = Environment::from_json(&json);
             assert!(parsed.is_ok());
+        }
+
+        #[test]
+        fn test_movement() {
+            let mut env = Environment::new(EnvConfig {
+                maze_width: 10,
+                maze_height: 10,
+                python_config: PythonConfig::default(),
+            });
+
+            // Allow eastward movement for 2 steps
+            env.maze.grid[0][9].walls.remove(&Direction::East);
+            env.maze.grid[1][9].walls.remove(&Direction::West);
+            env.maze.grid[1][9].walls.remove(&Direction::East);
+            env.maze.grid[2][9].walls.remove(&Direction::West);
+
+            // Update agent's weighted graph to allow 2 eastward steps
+            let mut east_map = HashMap::new();
+            east_map.insert(Direction::East, 2);
+            env.weighted_graph.insert((0, 9), east_map);
+            env.current_location = (0, 9);
+
+            let steps_taken = env.move_from_current(&Direction::East, 0);
+
+            assert_eq!(steps_taken, 2);
+            assert_eq!(env.current_location, (2, 9));
+            assert_eq!(env.path_followed.len(), 3);
         }
     }
 }

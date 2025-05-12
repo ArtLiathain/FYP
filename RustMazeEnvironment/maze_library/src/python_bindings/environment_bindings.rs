@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use log::{error, info};
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
 use crate::{
@@ -48,15 +51,23 @@ impl Environment {
         let dir = Direction::from(action.direction);
         let old_direction = self.previous_direction;
         let steps_taken = self.move_from_current(&dir, action.run);
-        if steps_taken == 0 {
-            self.steps += 1
-        }
+        
+
         let (is_done, is_truncated, reward);
-        if action.run > self.config.python_config.mini_explore_runs_per_episode {
+        if action.run >= self.config.python_config.mini_explore_runs_per_episode {
             (is_done, is_truncated, reward) =
                 self.calculate_reward_for_solving(old_location, old_direction);
         } else {
-            (is_done, is_truncated, reward) = self.calculate_reward_for_exploring(old_direction);
+            (is_done, is_truncated, reward) =
+                self.calculate_reward_for_exploring(old_location, old_direction);
+        }
+        if self.path_followed.len() < 40 && self.get_current_run() > 0
+        {
+            let filtered_path : Vec<&(Coordinate, usize)> = self.path_followed.iter().filter(|(_,x)| *x == self.get_current_run()).collect::<Vec<&(Coordinate, usize)>>(); 
+            println!(
+                "Current Location {:?} steps this run {:?}, path followed length {:?}",
+                self.current_location, self.steps, filtered_path.len()
+            );
         }
 
         ActionResult {
@@ -69,16 +80,18 @@ impl Environment {
     }
 
     pub fn reset(&mut self) -> Vec<f32> {
-        self.visited.clear();
+        self.visited = HashMap::from([(self.maze.get_starting_point(), 1)]);
+        self.overall_visited = HashMap::from([(self.maze.get_starting_point(), 1)]);
+        self.path_followed = Vec::from([(self.maze.get_starting_point(), 0)]);
         self.total_steps += self.steps;
         self.steps = 0;
         self.current_location = self.maze.start;
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
     }
     pub fn smart_reset(&mut self, run: usize) -> Vec<f32> {
-        if self.config.python_config.mini_explore_runs_per_episode < run {
-            self.visited.clear();
-        }
+        self.visited = HashMap::from([(self.maze.get_starting_point(), 1)]);
+        self.path_followed
+            .push((self.maze.get_starting_point(), run));
         self.total_steps += self.steps;
         self.steps = 0;
         self.current_location = self.maze.start;
@@ -98,10 +111,10 @@ impl Environment {
         maze.break_walls_for_path(walls);
         self.weighted_graph = maze.convert_to_weighted_graph(None, true);
         self.maze = maze;
-        self.path_followed.clear();
-        self.current_location = self.maze.start;
-        self.visited.clear();
-        self.overall_visited.clear();
+        self.current_location = self.maze.get_starting_point();
+        self.visited = HashMap::from([(self.maze.get_starting_point(), 0)]);
+        self.overall_visited = HashMap::from([(self.maze.get_starting_point(), 0)]);
+        self.path_followed = Vec::from([(self.maze.get_starting_point(), 0)]);
         self.steps = 0;
         self.total_steps = 0;
         Observation::new(&self, self.maze.get_starting_point()).flatten_and_scale_observation(&self)
@@ -145,7 +158,11 @@ impl Environment {
             reward -= difference as f32 * 0.1;
         }
 
-        let number_visits = *self.visited.get(&self.current_location).unwrap_or(&1) - 1;
+        let number_visits = self
+            .visited
+            .get(&self.current_location)
+            .unwrap_or(&1)
+            .saturating_sub(1);
         if number_visits > 0 {
             reward -= f32::min(0.5, number_visits as f32 * 0.15);
         }
@@ -161,7 +178,6 @@ impl Environment {
         }
 
         if self.steps > self.config.python_config.exploration_steps {
-            reward -= 5.0;
             is_truncated = true;
         }
 
@@ -175,42 +191,62 @@ impl Environment {
 
     fn calculate_reward_for_exploring(
         &self,
+        old_location: Coordinate,
         old_direction: Option<Direction>,
     ) -> (bool, bool, f32) {
         let mut is_truncated = false;
-        let mut reward = 0.1;
-        if old_direction.is_some() {
-            //This is actually the new direction due to it being caclulated after moving
-            let difference = self
+        let mut reward = 0.0;
+
+        // Handle turn penalty (direction change cost)
+        if let Some(new_dir) = old_direction {
+            let turn_penalty = self
                 .previous_direction
-                .unwrap()
-                .turn_amount(&old_direction.unwrap());
-            reward -= difference as f32 * 0.1;
+                .map(|prev| prev.turn_amount(&new_dir))
+                .unwrap_or(0);
+            reward -= turn_penalty as f32 * 0.1;
         }
 
-        let number_visits = *self
+        let global_visits = self
             .overall_visited
             .get(&self.current_location)
-            .unwrap_or(&1) - 1;
-        let recent_number_visits = *self
+            .unwrap_or(&1)
+            .saturating_sub(1);
+        let local_visits = self
             .visited
             .get(&self.current_location)
-            .unwrap_or(&1) - 1;
-        if number_visits == 0 {
-            reward += 0.15
-             * self.overall_visited.len() as f32;
-            }
-            if recent_number_visits > 0 {
-                reward -= f32::min(1.5, number_visits as f32 * 0.3);
-            }
-            else {
-                reward = 0.0
-            }
+            .unwrap_or(&1)
+            .saturating_sub(1);
 
+        // ⛳ Reward global novelty (first time *any agent* has visited)
+        if global_visits == 0 {
+            let total_unique_tiles = self.overall_visited.len() as f32;
+            let novelty_scale = (1.0 + total_unique_tiles.log2()).min(5.0);
+            reward += novelty_scale; // e.g., starts at ~1.0 and grows
+        }
+
+        // 🧭 Reward local novelty (first time this agent visited it)
+
+        // 🚫 Penalize revisits (light touch with a cap)
+        if local_visits > 0 {
+            reward -= (local_visits as f32 * 0.3).min(1.5);
+        }
+
+        // 🧱 Penalize wall bump
+        if self.current_location == old_location {
+            reward -= 0.5;
+        }
+
+        let explored_ratio =
+            self.overall_visited.len() as f32 / (self.maze.width * self.maze.height) as f32;
+        if explored_ratio > 0.95 {
+            is_truncated = true;
+        }
+
+        // 🕰️ Truncation condition
         if self.steps > self.config.python_config.exploration_steps * 2 {
             is_truncated = true;
         }
-        
+
         (false, is_truncated, reward)
     }
 }

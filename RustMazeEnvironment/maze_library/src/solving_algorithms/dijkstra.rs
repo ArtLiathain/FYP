@@ -31,12 +31,12 @@ pub fn dijkstra_graph(
     env: &Environment,
     start: Coordinate,
 ) -> HashMap<Coordinate, (usize, Coordinate)> {
-    let mut main_stack = BinaryHeap::new(); // Priority queue
+    let mut main_stack = BinaryHeap::new(); 
     let mut path_map: HashMap<Coordinate, (usize, Coordinate)> = HashMap::new();
-    let mut visited = HashSet::new(); // Track visited cells
+    let mut visited = HashSet::new();  
     let weighted_graph = &env.weighted_graph;
     path_map.insert(start, (0, start));
-    main_stack.push(Reverse((0, start))); // Push starting point
+    main_stack.push(Reverse((0, start)));
 
     while let Some(Reverse((distance, current))) = main_stack.pop() {
         if visited.contains(&current) {

@@ -7,7 +7,7 @@ use crate::{direction::Direction, environment::environment::Coordinate, maze::ma
 pub fn growing_tree_maze(
     maze: &Maze,
     mut rng: StdRng,
-    chooser: &dyn Fn(&[Coordinate]) -> &Coordinate,
+    choose_cell: &dyn Fn(&[Coordinate]) -> &Coordinate,
 ) -> Vec<(Coordinate, Direction)> {
     let mut active = vec![];
     let mut walls_to_break = vec![];
@@ -17,7 +17,7 @@ pub fn growing_tree_maze(
     while !active.is_empty() {
         // println!("{:?}", active);
         // println!("{:?}", visited);
-        let current = *chooser(&active);
+        let current = *choose_cell(&active);
         let mut new_cells = vec![];
         for dir in [
             Direction::North,

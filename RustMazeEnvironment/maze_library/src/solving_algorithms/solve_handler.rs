@@ -24,7 +24,7 @@ impl FromStr for SolveAlgorithm {
     }
 }
 
-pub fn select_maze_solve_algorithm(environment: &mut Environment, algorithm: &SolveAlgorithm) -> Vec<(Coordinate, Direction)>{
+pub fn select_maze_solve_algorithm(environment: &Environment, algorithm: &SolveAlgorithm) -> Vec<(Coordinate, Direction)>{
     let maze = &environment.maze;
     let path = match algorithm {
         SolveAlgorithm::Dfs => {

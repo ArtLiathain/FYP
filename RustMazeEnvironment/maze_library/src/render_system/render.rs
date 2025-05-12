@@ -3,7 +3,9 @@ pub mod render {
     use crate::environment::environment::{Coordinate, Environment};
     use crate::render_system::render_coloured_mazes::draw_coloured_maze;
     use crate::render_system::render_maze::draw_maze;
+    use macroquad::color::YELLOW;
     use macroquad::input::{is_key_pressed, KeyCode};
+    use macroquad::text::draw_text;
     use macroquad::window::next_frame;
     use std::cmp::min;
     use std::collections::HashSet;
@@ -65,13 +67,22 @@ pub mod render {
                     sleep(Duration::from_millis(300));
                 }
                 if is_key_pressed(KeyCode::Up) {
-                    println!("Up pressed - skipping {} steps.", full_episode*4);
-                    skip_steps = step + full_episode*4;
+                    println!("Up pressed - skipping {} steps.", full_episode * 4);
+                    skip_steps = step + full_episode * 4;
                     next_frame().await; // let the frame advance
                     sleep(Duration::from_millis(300));
                 }
 
                 let mut screens_displayed = 0;
+                if !coloured_heatmap {
+                    draw_text(
+                        &format!("Step {}", step),
+                        10.0,
+                        10.0,   // Adjust upward a little
+                        20.0,   // Font size
+                        YELLOW, // Color (adjust as you like)
+                    );
+                }
 
                 for row in 0..rows {
                     for col in 0..columns {
@@ -134,7 +145,7 @@ pub mod render {
                 }
                 if skip_steps < step {
                     next_frame().await;
-                    sleep(Duration::from_millis(50));
+                    sleep(Duration::from_millis(100));
                 }
                 step += 1;
             }

@@ -8,7 +8,7 @@ pub mod maze {
 
     use crate::{direction::Direction, environment::environment::Coordinate};
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub enum MoveError {
         OutOfBounds,
         InvalidDirection,
@@ -113,15 +113,16 @@ pub mod maze {
         ) -> Result<Coordinate, MoveError> {
             let mut current = *coordinates;
             for _ in 0..steps {
-                if self.grid[coordinates.0][coordinates.1]
+                if self.grid[current.0][current.1]
                     .walls
                     .contains(direction)
                 {
+                    
                     return Err(MoveError::InvalidDirection);
                 }
-                current = match self.move_from(direction, coordinates, 1) {
+                current = match self.move_from(direction, &current, 1) {
                     Ok(c) => c,
-                    Err(_) => return Err(MoveError::InvalidDirection),
+                    Err(_) => return Err(MoveError::OutOfBounds),
                 };
             }
             Ok(current)
@@ -148,10 +149,22 @@ pub mod maze {
         }
 
         pub fn break_walls_for_path(&mut self, path: Vec<(Coordinate, Direction)>) {
-            for i in 0..path.len() {
-                self.break_wall_for_path(&path, i);
+            for index in 0..path.len() {
+                let current_cell = path[index].0;
+                let next_cell = match self.move_from(&path[index].1, &path[index].0, 1) {
+                    Ok(coordinates) => coordinates,
+                    Err(_) => {
+                        return;
+                    }
+                };
+                let direction = path[index].1;
+                self.grid[next_cell.0][next_cell.1]
+                    .walls
+                    .remove(&Direction::opposite_direction(&direction));
+                self.grid[current_cell.0][current_cell.1]
+                    .walls
+                    .remove(&direction);
             }
-            self.break_end_walls();
         }
 
         pub fn get_perfect_end_centre(&self) -> (f32, f32) {
@@ -183,23 +196,6 @@ pub mod maze {
                     }
                 }
             }
-        }
-
-        pub fn break_wall_for_path(&mut self, path: &Vec<(Coordinate, Direction)>, index: usize) {
-            let current_cell = path[index].0;
-            let next_cell = match self.move_from(&path[index].1, &path[index].0, 1) {
-                Ok(coordinates) => coordinates,
-                Err(_) => {
-                    return;
-                }
-            };
-            let direction = path[index].1;
-            self.grid[next_cell.0][next_cell.1]
-                .walls
-                .remove(&Direction::opposite_direction(&direction));
-            self.grid[current_cell.0][current_cell.1]
-                .walls
-                .remove(&direction);
         }
 
         fn follow_path(
@@ -321,6 +317,86 @@ pub mod maze {
             }
 
             decision_nodes
+        }
+    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::direction::Direction;
+        
+        use std::collections::HashSet;
+
+        #[test]
+        fn test_move_from_valid_directions() {
+            let maze = Maze::new(3, 3);
+            let start = (1, 1);
+
+            assert_eq!(maze.move_from(&Direction::North, &start, 1), Ok((1, 0)));
+            assert_eq!(maze.move_from(&Direction::South, &start, 1), Ok((1, 2)));
+            assert_eq!(maze.move_from(&Direction::East, &start, 1), Ok((2, 1)));
+            assert_eq!(maze.move_from(&Direction::West, &start, 1), Ok((0, 1)));
+        }
+
+        #[test]
+        fn test_move_from_out_of_bounds() {
+            let maze = Maze::new(3, 3);
+
+            assert_eq!(
+                maze.move_from(&Direction::North, &(0, 0), 1),
+                Err(MoveError::OutOfBounds)
+            );
+            assert_eq!(
+                maze.move_from(&Direction::West, &(0, 0), 1),
+                Err(MoveError::OutOfBounds)
+            );
+            assert_eq!(
+                maze.move_from(&Direction::South, &(1, 2), 1),
+                Err(MoveError::OutOfBounds)
+            );
+            assert_eq!(
+                maze.move_from(&Direction::East, &(2, 1), 1),
+                Err(MoveError::OutOfBounds)
+            );
+        }
+
+        #[test]
+        fn test_move_from_with_walls_blocked() {
+            let mut maze = Maze::new(3, 3);
+            let coord = (1, 1);
+            let cell = &mut maze.grid[coord.0][coord.1];
+            cell.walls = HashSet::from([
+                Direction::North,
+                Direction::South,
+                Direction::East,
+                Direction::West,
+            ]);
+
+            for dir in &[
+                Direction::North,
+                Direction::South,
+                Direction::East,
+                Direction::West,
+            ] {
+                assert_eq!(
+                    maze.move_from_with_walls(dir, &coord, 1),
+                    Err(MoveError::InvalidDirection)
+                );
+            }
+        }
+
+        #[test]
+        fn test_move_from_with_walls_unblocked() {
+            let mut maze = Maze::new(4, 4);
+            let coord = (1, 1);
+
+            // Remove east wall to allow movement eastward
+            maze.grid[1][1].walls.remove(&Direction::East);
+            maze.grid[2][1].walls.remove(&Direction::West); // Also remove opposite wall
+            maze.grid[2][1].walls.remove(&Direction::East);
+            maze.grid[3][1].walls.remove(&Direction::West); // Also remove opposite wall
+
+            let result = maze.move_from_with_walls(&Direction::East, &coord, 2);
+            assert_eq!(result, Ok((3, 1)));
         }
     }
 }
