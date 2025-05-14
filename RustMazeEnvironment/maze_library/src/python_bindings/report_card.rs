@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use num_traits::ToPrimitive;
-use pyo3::pyclass;
+use pyo3::{pyclass, pymethods, PyErr, PyResult};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -16,8 +16,6 @@ pub struct ReportCard {
     pub total_steps: usize,
     #[pyo3(get)]
     pub average_run_score: f32,
-    #[pyo3(get)]
-    pub average_path_length: f32,
     #[pyo3(get)]
     pub full_turns_done: f32,
     #[pyo3(get)]
@@ -69,7 +67,6 @@ fn average<T: ToPrimitive>(nums: &[T]) -> f32 {
 
 impl Environment {
     pub fn generate_report_card(&self) -> ReportCard {
-        let mut path_lengths = vec![];
         let mut hit_counts = vec![];
         let mut reverse_counts = vec![];
         let mut exits_found = vec![];
@@ -87,9 +84,8 @@ impl Environment {
         }
 
         for i in self.config.python_config.mini_explore_runs_per_episode..self.get_current_run() {
-            let (total_run_score, hit_count, reverse_count, average_path_length, found_exit) =
+            let (total_run_score, hit_count, reverse_count, found_exit) =
                 self.calculate_run_score(i);
-            path_lengths.push(average_path_length);
             hit_counts.push(hit_count);
             exits_found.push(if found_exit { 1 } else { 0 });
             reverse_counts.push(reverse_count);
@@ -97,7 +93,7 @@ impl Environment {
                 exploit_runs.push(total_run_score);
             }
         }
-        let (score, _, _, _) = calcualte_score_for_coordinate_vector(
+        let (score, _, _) = calcualte_score_for_coordinate_vector(
             &dijkstra_solve(
                 self,
                 self.maze.start,
@@ -107,7 +103,6 @@ impl Environment {
         );
         ReportCard {
             total_steps: self.total_steps,
-            average_path_length: average(&path_lengths),
             full_turns_done: average(&reverse_counts),
             success_rate_in_exploitation: average(&exits_found),
             total_percentage_explored: self.overall_visited.len() as f32
@@ -119,10 +114,35 @@ impl Environment {
             average_visits: average(&average_visited),
         }
     }
+
+    
+}
+
+#[pymethods]
+impl ReportCard {
+    pub fn to_json(&self) -> PyResult<String> {
+        match serde_json::to_string(self) {
+            Ok(json) => Ok(json),
+            Err(e) => {
+                println!("Serialization error: {}", e); // Log the error
+                Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    e.to_string(),
+                ))
+            }
+        }
+    }
+
+    #[staticmethod]
+    pub fn from_json(json_str: &str) -> PyResult<ReportCard> {
+        serde_json::from_str(json_str)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use pyo3::pymethods;
+
     use crate::{
         environment::environment::{Coordinate, Environment},
         environment_config::{EnvConfig, PythonConfig},

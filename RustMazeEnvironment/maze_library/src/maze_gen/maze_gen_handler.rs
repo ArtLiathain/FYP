@@ -1,7 +1,8 @@
 use clap::ValueEnum;
 use rand::{rngs::StdRng, Rng, SeedableRng};
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use strum_macros::EnumIter;
+use strum_macros::{Display, EnumIter};
 
 use crate::{direction::Direction, environment::environment::Coordinate, maze::maze::Maze};
 
@@ -10,7 +11,7 @@ use super::{
     kruzkals::random_kruzkals_maze, wilsons::random_wilson_maze,
 };
 
-#[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter)]
+#[derive(ValueEnum, Clone, Debug, Hash, Eq, PartialEq, EnumIter,Serialize, Deserialize, Display)]
 pub enum MazeType {
     Kruzkals,
     Wilsons,
@@ -19,6 +20,14 @@ pub enum MazeType {
     BinaryTree,
 }
 
+
+impl Default for MazeType {
+    fn default() -> Self {
+        MazeType::BinaryTree
+    }
+}
+
+
 impl FromStr for MazeType {
     type Err = ();
 
@@ -26,9 +35,9 @@ impl FromStr for MazeType {
         match s.to_lowercase().as_str() {
             "kruzkals" => Ok(MazeType::Kruzkals),
             "wilsons" => Ok(MazeType::Wilsons),
-            "recursive-backtracker" => Ok(MazeType::RecursiveBacktracker),
+            "recursivebacktracker" => Ok(MazeType::RecursiveBacktracker),
             "prims" => Ok(MazeType::Prims),
-            "binary-tree" => Ok(MazeType::BinaryTree),
+            "binarytree" => Ok(MazeType::BinaryTree),
             _ => Err(()),
         }
     }

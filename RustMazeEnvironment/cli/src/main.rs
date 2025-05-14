@@ -68,7 +68,6 @@ fn main() {
             });
         }
         Commands::Display {
-            start,
             count,
             filename,
         } => {
@@ -88,7 +87,6 @@ fn main() {
             });
         }
         Commands::ColouredDisplay {
-            start,
             count,
             filename,
         } => {
@@ -135,59 +133,6 @@ fn main() {
             macroquad::Window::from_config(window_conf(), async move {
                 // Game loop
                 render_mazes(environments, cell_size, true).await;
-            });
-        }
-
-        Commands::Compare {
-            solve_algoithms,
-            gen_algotithm,
-            files_location,
-            count,
-            width,
-            length,
-        } => {
-            let environment: Environment;
-
-            match read_environment_from_file(&files_location.unwrap_or("".to_string())) {
-                Ok(env) => environment = env,
-                Err(_) => {
-                    environment = generate_environment(&gen_algotithm, width, length, 40, None);
-                }
-            }
-            let environments = vec![environment; count];
-            // for (index, mut environment) in environments.iter_mut().enumerate() {
-            //     solve_maze(
-            //         &mut environment,
-            //         &solve_algoithms[index % solve_algoithms.len()],
-            //     );
-            // }
-            macroquad::Window::from_config(window_conf(), async move {
-                // Game loop
-                render_mazes(environments, cell_size, false).await;
-            });
-        }
-        Commands::Test {} => {
-            // let filename = format!("../mazeLogs/error_0.json");
-            // let environment = read_environment_from_file(&filename).unwrap();
-            let config: EnvConfig = EnvConfig::new(10, 10, PythonConfig::default());
-            let mut environment = Environment::new(config);
-            let walls = select_maze_algorithm(&environment.maze, None, &MazeType::BinaryTree);
-            // // let walls = random_wilson_maze(&environment.maze);
-            // // println!("{:?}", walls);
-            environment.maze.break_walls_for_path(walls);
-            // environment.weighted_graph = environment.maze.convert_to_weighted_graph(None, false);
-            // let path_graph = dijkstra_graph(&environment, *environment.maze.end.iter().next().unwrap());
-            // // for (key, value) in environment.weighted_graph.iter() {
-            // //     for (nested_key, nested_value) in environment.weighted_graph.get(key).unwrap_or(&HashMap::new()){
-
-            //     }
-            // }
-            // println!("{:?}", path_graph);
-            macroquad::Window::from_config(window_conf(), async move {
-                draw_maze(&environment, cell_size, &HashSet::new(), 0, 0.0, 0.0).await;
-                //         draw_coloured_maze(&environment, cell_size, 10.0, 10.0, &path_graph).await;
-                next_frame().await;
-                sleep(Duration::from_millis(100000));
             });
         }
     }

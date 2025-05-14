@@ -58,33 +58,19 @@ impl Observation {
             Direction::West,
         ];
         for dir in direction_vec.iter() {
-            let mut direction_encoding = vec![0.0; 4]; // quasi-one-hot
-
             let steps = *self.available_paths.get(dir).unwrap_or(&0) as f32;
-
             let norm = match dir {
                 Direction::North | Direction::South => env.maze.height as f32,
                 Direction::East | Direction::West => env.maze.width as f32,
             };
-
-            let index = match dir {
-                Direction::North => 0,
-                Direction::East => 1,
-                Direction::South => 2,
-                Direction::West => 3,
-            };
-
-            direction_encoding[index] = steps / norm;
-
-            vec.extend(direction_encoding);
+            vec.push(steps / norm);
         }
         let visited_paths = self.calculate_visited_paths(env);
         for dir in direction_vec.iter() {
             if *visited_paths.get(dir).unwrap_or(&0) > 0 {
-                vec.push(0.0);
-            }
-            else {
                 vec.push(1.0);
+            } else {
+                vec.push(0.0);
             }
         }
 
@@ -92,7 +78,13 @@ impl Observation {
         vec.push(self.current_location.1 as f32 / (env.maze.height as f32 - 1.0));
         vec.push(self.end_node.0 / (env.maze.width as f32 - 1.0));
         vec.push(self.end_node.1 / (env.maze.height as f32 - 1.0));
-        vec.push(self.previous_direction as f32);
+        for dir in direction_vec.iter() {
+            vec.push(if *visited_paths.get(dir).unwrap_or(&0) > 0 {
+                1.0
+            } else {
+                0.0
+            });
+        }
         vec.push(self.previous_location.0 as f32 / (env.maze.width as f32 - 1.0));
         vec.push(self.previous_location.1 as f32 / (env.maze.height as f32 - 1.0));
         vec.push(self.manhattan_distance / (env.maze.width + env.maze.height) as f32);
@@ -106,6 +98,9 @@ impl Observation {
                 0.0
             },
         );
+
+        let local_visits = *env.visited.get(&self.current_location).unwrap_or(&0) as f32;
+        vec.push((local_visits + 1.0).ln() / 5.0);
         vec.extend(self.get_5x5_features(&env));
         vec
     }
@@ -121,14 +116,20 @@ impl Observation {
                 match env.maze.in_bounds((x, y)) {
                     true => {
                         let coord = (x as usize, y as usize);
-                        let cell = env.maze.get_cell(coord); // -> [bool; 4]
+                        if env.overall_visited.contains_key(&coord) {
+                            let cell = env.maze.get_cell(coord); // -> [bool; 4]
 
-                        features.extend([
-                            cell.walls.contains(&Direction::North) as u8 as f32,
-                            cell.walls.contains(&Direction::South) as u8 as f32,
-                            cell.walls.contains(&Direction::East) as u8 as f32,
-                            cell.walls.contains(&Direction::West) as u8 as f32,
-                        ]);
+                            // Only show walls if visited
+                            features.extend([
+                                cell.walls.contains(&Direction::North) as u8 as f32,
+                                cell.walls.contains(&Direction::South) as u8 as f32,
+                                cell.walls.contains(&Direction::East) as u8 as f32,
+                                cell.walls.contains(&Direction::West) as u8 as f32,
+                            ]);
+                        } else {
+                            // Mask wall info to 0.0 if not visited
+                            features.extend([0.0, 0.0, 0.0, 0.0]);
+                        }
                         features.push(if env.overall_visited.contains_key(&coord) {
                             1.0
                         } else {

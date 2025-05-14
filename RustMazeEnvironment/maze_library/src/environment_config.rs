@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::maze_gen::maze_gen_handler::MazeType;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnvConfig {
     pub maze_width: usize,
@@ -32,4 +34,5 @@ pub struct PythonConfig {
     pub mini_explore_runs_per_episode: usize,
     pub mini_exploit_runs_per_episode: usize,
     pub exploration_steps: usize,
+    pub generated_maze_type: MazeType
 }

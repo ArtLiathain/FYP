@@ -47,10 +47,6 @@ pub enum Commands {
         #[arg(short, long, required = true)]
         filename: String,
 
-        /// Starting number
-        #[arg(short, long, default_value_t = 0)]
-        start: usize,
-
         /// Number of files to iterate over
         #[arg(short, long, default_value_t = 5)]
         count: usize,
@@ -60,10 +56,6 @@ pub enum Commands {
         /// First filename in sequence
         #[arg(short, long, required = true)]
         filename: String,
-
-        /// Starting number
-        #[arg(short, long, default_value_t = 0)]
-        start: usize,
 
         /// Number of files to iterate over
         #[arg(short, long, default_value_t = 5)]
@@ -88,25 +80,5 @@ pub enum Commands {
          #[arg(short, long, default_value_t = 0)]
          removed_walls: usize,
     },
-    Compare {
-        #[arg(short, long, value_enum, default_values_t=vec![SolveAlgorithm::Dfs, SolveAlgorithm::Dijkstra], num_args = 0..)]
-        solve_algoithms: Vec<SolveAlgorithm>,
-
-        #[arg(short, long, value_enum, default_value_t=MazeType::Kruzkals)]
-        gen_algotithm: MazeType,
-
-        #[arg(short, long, required = false)]
-        files_location: Option<String>,
-
-        /// number of mazes to solve
-        #[arg(short, long, default_value_t = 10)]
-        count: usize,
-
-        #[arg(short, long, default_value_t = 19)]
-        width: usize,
-        /// Heigh of maze
-        #[arg(short, long, default_value_t = 19)]
-        length: usize,
-    },
-    Test {},
+    
 }

@@ -76,7 +76,7 @@ impl Direction {
     }
 
     pub fn turn_amount(&self, prev_direction: &Direction) -> usize {
-        ((*prev_direction as i32 - *self as i32).abs() % 2) as usize
+        ((*prev_direction as i32 - *self as i32).abs() % 3) as usize
     }
 }
 

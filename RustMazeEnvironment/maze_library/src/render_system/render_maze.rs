@@ -29,15 +29,15 @@ pub async fn draw_maze(
             "Run {}, {}",
             current_run,
             if current_run
-                > environment
+                >= environment
                     .config
                     .python_config
                     .mini_explore_runs_per_episode
                     
             {
-                "Solving"
+                "Solve"
             } else {
-                "Exploring"
+                "Explore"
             }
         ),
         x_offset + 30.0,

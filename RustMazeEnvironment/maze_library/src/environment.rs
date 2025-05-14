@@ -3,7 +3,7 @@ pub mod environment {
         direction::{direction_between, Direction},
         environment_config::EnvConfig,
         map_vec_conversion::map_vec_conversion,
-        maze::maze::Maze,
+        maze::maze::Maze, maze_gen::maze_gen_handler::MazeType,
     };
     use log::error;
     use serde::{Deserialize, Serialize};
@@ -31,7 +31,7 @@ pub mod environment {
     pub fn calcualte_score_for_coordinate_vector(
         path: &Vec<Coordinate>,
         weighted_graph: &HashMap<Coordinate, HashMap<Direction, usize>>,
-    ) -> (usize, usize, usize, f32) {
+    ) -> (usize, usize, usize) {
         let mut direction_map = HashMap::new();
         let mut reverse_count = 0;
         let mut hit_count = 0;
@@ -79,7 +79,6 @@ pub mod environment {
             total_run_steps + total_run_penalty,
             hit_count,
             reverse_count,
-            total_run_steps as f32 / turn_count as f32,
         )
     }
 
@@ -109,7 +108,7 @@ pub mod environment {
                 Direction::East,
                 Direction::West,
             ] {
-                let new_coords = match self.maze.move_from(&direction, &self.current_location, 1) {
+                let new_coords = match self.maze.move_from_with_walls(&direction, &self.current_location, 1) {
                     Ok(new) => new,
                     Err(_) => continue,
                 };
@@ -190,7 +189,7 @@ pub mod environment {
             self.path_followed[self.path_followed.len() - 1].1
         }
 
-        pub fn calculate_run_score(&self, run_to_score: usize) -> (usize, usize, usize, f32, bool) {
+        pub fn calculate_run_score(&self, run_to_score: usize) -> (usize, usize, usize, bool) {
             let filtered_path: Vec<Coordinate> = self
                 .path_followed
                 .iter()
@@ -198,15 +197,14 @@ pub mod environment {
                 .map(|(coord, _)| *coord)
                 .collect();
             if filtered_path.len() <= 1 {
-                return (0, 0, 0, 0.0, false);
+                return (0, 0, 0, false);
             }
-            let (total_run_score, hit_count, reverse_count, average_path_length) =
+            let (total_run_score, hit_count, reverse_count) =
                 calcualte_score_for_coordinate_vector(&filtered_path, &self.weighted_graph);
             (
                 total_run_score,
                 hit_count,
                 reverse_count,
-                average_path_length as f32,
                 self.maze
                     .end
                     .contains(&filtered_path[filtered_path.len() - 1]),

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use log::{error, info};
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
@@ -51,7 +51,6 @@ impl Environment {
         let dir = Direction::from(action.direction);
         let old_direction = self.previous_direction;
         let steps_taken = self.move_from_current(&dir, action.run);
-        
 
         let (is_done, is_truncated, reward);
         if action.run >= self.config.python_config.mini_explore_runs_per_episode {
@@ -60,14 +59,6 @@ impl Environment {
         } else {
             (is_done, is_truncated, reward) =
                 self.calculate_reward_for_exploring(old_location, old_direction);
-        }
-        if self.path_followed.len() < 40 && self.get_current_run() > 0
-        {
-            let filtered_path : Vec<&(Coordinate, usize)> = self.path_followed.iter().filter(|(_,x)| *x == self.get_current_run()).collect::<Vec<&(Coordinate, usize)>>(); 
-            println!(
-                "Current Location {:?} steps this run {:?}, path followed length {:?}",
-                self.current_location, self.steps, filtered_path.len()
-            );
         }
 
         ActionResult {
@@ -104,10 +95,16 @@ impl Environment {
     pub fn output_shape(&self) -> usize {
         4
     }
-
-    pub fn reset_and_regenerate(&mut self) -> Vec<f32> {
+    #[pyo3(signature = (input_algorithm=None))]
+    pub fn reset_and_regenerate(&mut self, input_algorithm: Option<String>) -> Vec<f32> {
         let mut maze = Maze::init_maze(self.maze.width, self.maze.height);
-        let walls = select_maze_algorithm(&maze, None, &MazeType::BinaryTree);
+        let gen_maze_type = if input_algorithm.is_some() {
+            &MazeType::from_str(&input_algorithm.unwrap()).unwrap()
+        } else {
+            &self.config.python_config.generated_maze_type
+        };
+
+        let walls = select_maze_algorithm(&maze, None, &gen_maze_type);
         maze.break_walls_for_path(walls);
         self.weighted_graph = maze.convert_to_weighted_graph(None, true);
         self.maze = maze;
@@ -158,13 +155,13 @@ impl Environment {
             reward -= difference as f32 * 0.1;
         }
 
-        let number_visits = self
+        let local_visits = self
             .visited
             .get(&self.current_location)
             .unwrap_or(&1)
             .saturating_sub(1);
-        if number_visits > 0 {
-            reward -= f32::min(0.5, number_visits as f32 * 0.15);
+        if local_visits > 0 {
+            reward -= f32::min(0.5, local_visits as f32 * 0.15);
         }
 
         if calculate_manhattan_distance(self.current_location, end)
@@ -177,13 +174,17 @@ impl Environment {
             reward -= 0.5;
         }
 
+        if local_visits == 0 {
+            reward += 0.3; // GOOD: adds small bonus
+        }
+
         if self.steps > self.config.python_config.exploration_steps {
             is_truncated = true;
         }
 
         if self.maze.end.contains(&self.current_location) {
             is_done = true;
-            reward += 30.0 + 500.0 / self.steps as f32;
+            reward += 30.0 + 300.0 / self.steps as f32;
         }
 
         (is_done, is_truncated, reward)
@@ -221,14 +222,17 @@ impl Environment {
         if global_visits == 0 {
             let total_unique_tiles = self.overall_visited.len() as f32;
             let novelty_scale = (1.0 + total_unique_tiles.log2()).min(5.0);
-            reward += novelty_scale; // e.g., starts at ~1.0 and grows
+            reward += 1.0 + novelty_scale; // e.g., starts at ~1.0 and grows
         }
 
         // 🧭 Reward local novelty (first time this agent visited it)
+        if local_visits == 0 {
+            reward += 0.3; // GOOD: adds small bonus
+        }
 
         // 🚫 Penalize revisits (light touch with a cap)
         if local_visits > 0 {
-            reward -= (local_visits as f32 * 0.3).min(1.5);
+            reward -= (local_visits as f32 * 0.05).min(1.5);
         }
 
         // 🧱 Penalize wall bump
