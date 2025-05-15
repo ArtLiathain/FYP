@@ -1,6 +1,5 @@
 use std::{collections::HashMap, str::FromStr};
 
-use log::{error, info};
 use pyo3::{pyclass, pymethods, PyErr, PyResult};
 
 use crate::{
@@ -175,7 +174,7 @@ impl Environment {
         }
 
         if local_visits == 0 {
-            reward += 0.3; // GOOD: adds small bonus
+            reward += 0.3; 
         }
 
         if self.steps > self.config.python_config.exploration_steps {
@@ -218,24 +217,20 @@ impl Environment {
             .unwrap_or(&1)
             .saturating_sub(1);
 
-        // ⛳ Reward global novelty (first time *any agent* has visited)
         if global_visits == 0 {
             let total_unique_tiles = self.overall_visited.len() as f32;
             let novelty_scale = (1.0 + total_unique_tiles.log2()).min(5.0);
-            reward += 1.0 + novelty_scale; // e.g., starts at ~1.0 and grows
+            reward += 1.0 + novelty_scale;
         }
 
-        // 🧭 Reward local novelty (first time this agent visited it)
         if local_visits == 0 {
-            reward += 0.3; // GOOD: adds small bonus
+            reward += 0.3; 
         }
 
-        // 🚫 Penalize revisits (light touch with a cap)
         if local_visits > 0 {
             reward -= (local_visits as f32 * 0.05).min(1.5);
         }
 
-        // 🧱 Penalize wall bump
         if self.current_location == old_location {
             reward -= 0.5;
         }
@@ -246,7 +241,6 @@ impl Environment {
             is_truncated = true;
         }
 
-        // 🕰️ Truncation condition
         if self.steps > self.config.python_config.exploration_steps * 2 {
             is_truncated = true;
         }

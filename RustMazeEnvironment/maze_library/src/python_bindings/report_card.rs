@@ -141,14 +141,11 @@ impl ReportCard {
 
 #[cfg(test)]
 mod tests {
-    use pyo3::pymethods;
-
     use crate::{
-        environment::environment::{Coordinate, Environment},
+        environment::environment:: Environment,
         environment_config::{EnvConfig, PythonConfig},
         maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType}, solving_algorithms::solve_handler::{select_maze_solve_algorithm, SolveAlgorithm},
     }; // or wherever it's defined
-    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_generate_report_card_minimal_env() {

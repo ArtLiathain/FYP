@@ -1,14 +1,13 @@
-use std::{collections::HashSet, thread::sleep, time::Duration};
 
 use clap::Parser;
 use cli::{Cli, Commands};
 use handler_functions::{
-    extract_prefix, generate_environment, generate_environment_list, read_environment_from_file,
+    extract_prefix, generate_environment_list, read_environment_from_file,
 };
 use log::info;
-use macroquad::window::{next_frame, Conf};
+use macroquad::window::Conf;
 use maze_library::{
-    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, environment_config::{EnvConfig, PythonConfig}, exploring_algorithms::explore_handler::explore_maze_with, maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType}, render_system::{render::render::render_mazes, render_maze::draw_maze}, solving_algorithms::{dijkstra::dijkstra_graph, solve_handler::select_maze_solve_algorithm}
+    constants::constants::{WINDOW_HEIGHT, WINDOW_WIDTH}, environment::environment::Environment, exploring_algorithms::explore_handler::explore_maze_with, render_system::render::render::render_mazes, solving_algorithms::{dijkstra::dijkstra_graph, solve_handler::select_maze_solve_algorithm}
 };
 mod cli;
 mod handler_functions;

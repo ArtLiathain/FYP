@@ -3,7 +3,7 @@ pub mod environment {
         direction::{direction_between, Direction},
         environment_config::EnvConfig,
         map_vec_conversion::map_vec_conversion,
-        maze::maze::Maze, maze_gen::maze_gen_handler::MazeType,
+        maze::maze::Maze,
     };
     use log::error;
     use serde::{Deserialize, Serialize};
@@ -35,7 +35,6 @@ pub mod environment {
         let mut direction_map = HashMap::new();
         let mut reverse_count = 0;
         let mut hit_count = 0;
-        let mut turn_count = 0;
         let mut prev_direction = direction_between(path[0], path[1]).unwrap_or(Direction::North);
         let mut total_run_steps = 0;
         let mut total_run_penalty = 0;
@@ -56,9 +55,7 @@ pub mod environment {
             let turn_penalty = direction
                 .expect("Direction overall")
                 .turn_amount(&prev_direction);
-            if turn_penalty > 0 {
-                turn_count += 1;
-            } else {
+            if turn_penalty == 0 {
                 *direction_map.entry(prev_direction).or_insert(0) += 1;
             }
             if turn_penalty == 2 {
@@ -108,10 +105,14 @@ pub mod environment {
                 Direction::East,
                 Direction::West,
             ] {
-                let new_coords = match self.maze.move_from_with_walls(&direction, &self.current_location, 1) {
-                    Ok(new) => new,
-                    Err(_) => continue,
-                };
+                let new_coords =
+                    match self
+                        .maze
+                        .move_from_with_walls(&direction, &self.current_location, 1)
+                    {
+                        Ok(new) => new,
+                        Err(_) => continue,
+                    };
                 if self.overall_visited.contains_key(&new_coords) {
                     continue;
                 }
@@ -130,10 +131,12 @@ pub mod environment {
                 self.steps += 1;
                 self.path_followed.push((self.current_location, run));
                 *self.visited.entry(self.current_location).or_insert(0) += 1;
-                *self.overall_visited.entry(self.current_location).or_insert(0) += 1;
+                *self
+                    .overall_visited
+                    .entry(self.current_location)
+                    .or_insert(0) += 1;
                 return 0;
             }
-            let current_path_length = self.path_followed.len();
             for i in 0..steps {
                 let intermediary_step =
                     match self
@@ -155,9 +158,6 @@ pub mod environment {
             }
             self.mark_nearby_as_visited();
             self.previous_direction = Some(*direction);
-            if current_path_length >= self.path_followed.len() {
-                println!("HUGE ERROR IN THIS STUPID FUNCTION");
-            }
             steps
         }
 

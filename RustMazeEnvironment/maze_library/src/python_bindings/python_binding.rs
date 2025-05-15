@@ -12,7 +12,7 @@ pub mod python_bindings {
         direction::Direction,
         environment::environment::Environment,
         environment_config::{EnvConfig, PythonConfig},
-        maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType, MazeTypeIter},
+        maze_gen::maze_gen_handler::{select_maze_algorithm, MazeType},
         python_bindings::{
             environment_bindings::{Action, ActionResult},
             report_card::ReportCard,

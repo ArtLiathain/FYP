@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import math
 import torch
+import pickle
 
 class PrioritizedReplayBuffer:
     def __init__(self, capacity, state_shape, alpha=0.6):
@@ -137,26 +138,13 @@ def generate_param_combinations(grid):
     for combination in itertools.product(*values):
         yield dict(zip(keys, combination))
         
-# import pandas as pd
-# csv_data = []
-# for i, result in enumerate(results):
-#     param_row = {**result["params"]}
-#     param_row["run_id"] = i
-#     param_row["mean_reward"] = sum(result["rewards"]) / len(result["rewards"])
-#     param_row["max_reward"] = max(result["rewards"])
-#     param_row["min_reward"] = min(result["rewards"])
-#     csv_data.append(param_row)
-
-# df = pd.DataFrame(csv_data)
-# df.to_csv("results_log2.csv", index=False)
-# print("Saved results to results_log.csv")
 def get_changed_hyperparams(defaults, current):
     return {
         k: v for k, v in current.items()
         if k not in defaults or defaults[k] != v
     }
 
-def parameterised_results_display(results, shared_params):
+def parameterised_results_displays(results, shared_params):
     cols = 2
     rows = math.ceil(len(results) / cols)
 
@@ -164,23 +152,20 @@ def parameterised_results_display(results, shared_params):
 
     if len(results) == 1:
         axs = [axs]
-
+    
     # Step 1: Find the max absolute reward for symmetric y-axis
-    max_reward = max(
-        max(abs(min(result["rewards"])), abs(max(result["rewards"])))
-        for result in results
-    )
+    
 
     # Round up to make the graph cleaner
-    y_limit = math.ceil(max_reward)
+    y_limit = math.ceil(300)
 
     for i, result in enumerate(results):
         ax = axs[i // cols][i % cols] if rows > 1 else axs[i % cols]
 
-        rewards = result["rewards"]
         changed = get_changed_hyperparams(shared_params, result["params"])
 
-        ax.plot(rewards)
+        plt.plot(moving_average(results["explore_rewards"], 15), label="Explore Episode Reward", alpha=0.7)
+        plt.plot(moving_average(results["exploit_rewards"], 15), label="Exploit Episode Reward", alpha=0.7)        
         ax.set_title(f"Run {i} - Changed Params:")
         ax.set_xlabel("Episode")
         ax.set_ylabel("Reward")
@@ -202,3 +187,49 @@ def parameterised_results_display(results, shared_params):
     fig.tight_layout()
     plt.savefig("comparison_plot2.png")
     plt.show()
+    
+def plot_report_card_metric(testing_maze_report_cards, metric_name):
+    """
+    Plots a bar plot comparing a selected metric across different maze generation algorithms.
+
+    Args:
+        testing_maze_report_cards (dict[str, list[ReportCard]]): Dict mapping generation type to list of ReportCard objects.
+        metric_name (str): The name of the ReportCard field to plot (e.g., 'average_run_score', 'walls_hit').
+    """
+    algorithms, means, stds= calculate_mean_std_of_metric_per_algorithm(testing_maze_report_cards, metric_name)
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.bar(algorithms, means, yerr=stds, capsize=5, color='skyblue')
+    plt.ylabel(metric_name.replace('_', ' ').title())
+    plt.title(f'Comparison of {metric_name.replace("_", " ").title()} across Maze Algorithms')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+    
+def save_experiment_results_with_pickle(results, filename="experiment_results.pkl"):
+    # Serializing the results using pickle
+    with open(filename, 'wb') as f:
+        pickle.dump(results, f)
+
+def load_experiment_results_with_pickle(filename="experiment_results.pkl"):
+    # Deserializing the results
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+    
+def calculate_mean_std_of_metric_per_algorithm(testing_maze_report_cards, metric_name):
+    algorithms = list(testing_maze_report_cards.keys())
+    means = []
+    stds = []
+
+    # Collect mean and std for the selected metric
+    for algo in algorithms:
+        values = [getattr(report, metric_name) for report in testing_maze_report_cards[algo]]
+        if values:
+            means.append(sum(values) / len(values))
+            stds.append((sum((v - means[-1]) ** 2 for v in values) / len(values)) ** 0.5)
+        else:
+            means.append(0.0)
+            stds.append(0.0)
+    return algorithms, means, stds
